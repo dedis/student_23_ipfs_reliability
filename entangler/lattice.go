@@ -68,6 +68,10 @@ func (l *Lattice) GetAllData() (data [][]byte, err error) {
 	return data, nil
 }
 
+func (l *Lattice) UpdateParity(index int, strand int, data []byte) {
+	l.ParityBlocks[strand][index].SetData(data, true)
+}
+
 // GetChunk returns a data chunk in the indexed block
 func (l *Lattice) GetChunk(index int) (data []byte, repaired bool, err error) {
 	block := l.getBlock(index)
@@ -93,10 +97,13 @@ func (l *Lattice) getDataFromBlock(block *Block, allowDepth uint) ([]byte, error
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	return nil, xerrors.Errorf("fail to recover block %d (parity: %t. strand: %d): %s.",
+		block.Index, block.IsParity, block.Strand, "sequential recovery failed")
 
-	return l.getDataFromBlockParallel(ctx, block, rid)
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
+
+	// return l.getDataFromBlockParallel(ctx, block, rid)
 }
 
 // getDataFromBlockSequential recovers a block with missing chunk using the lattice (single thread)
@@ -215,7 +222,7 @@ func (l *Lattice) sequentialRepair(block *Block, rid uint, allowDepth uint) bool
 	}
 
 	for _, mypair := range pairs {
-		util.InfoPrintf(util.Yellow("{Parallel} Left - Index: %d, Parity: %t, Strand: %d\n"+
+		util.LogPrintf(util.Yellow("{Sequential} Left - Index: %d, Parity: %t, Strand: %d\n"+
 			"Right - Index: %d, Parity: %t, Strand: %d\n\n"),
 			mypair.Left.Index, mypair.Left.IsParity, mypair.Left.Strand,
 			mypair.Right.Index, mypair.Right.IsParity, mypair.Right.Strand)
@@ -250,6 +257,14 @@ func (l *Lattice) sequentialRecoverHelper(block *Block, rid uint, allowDepth uin
 	// if already has data or already visited
 	if !block.StartRepair(context.Background(), rid) {
 		modifyState = false
+		printRecoverStatus(false, Available, block)
+		return
+	}
+
+	// if already has data
+	if block.Status == DataAvailable {
+		repairSuccess = true
+		printRecoverStatus(false, Available, block)
 		return
 	}
 
@@ -386,6 +401,7 @@ const (
 	DownloadFail
 	RepairSuccess
 	RepairFail
+	Available
 )
 
 var recoverStatusToString = map[RecoverStatus]string{
@@ -393,6 +409,7 @@ var recoverStatusToString = map[RecoverStatus]string{
 	DownloadFail:    "downloaded fail",
 	RepairSuccess:   "repaired successfully",
 	RepairFail:      "repaired fail",
+	Available:       "available",
 }
 
 var recoverStatusToColor = map[RecoverStatus][]func(...interface{}) string{
@@ -411,6 +428,10 @@ var recoverStatusToColor = map[RecoverStatus][]func(...interface{}) string{
 	RepairFail: {
 		util.Red,
 		util.Red,
+	},
+	Available: {
+		util.White,
+		util.Magenta,
 	},
 }
 

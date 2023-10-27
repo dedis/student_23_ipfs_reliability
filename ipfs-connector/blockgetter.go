@@ -14,9 +14,23 @@ type IPFSGetter struct {
 	DataFilter      map[int]struct{}
 	Parity          [][]string
 	ParityFilter    []map[int]struct{}
-
-	BlockNum int
+	BlockNum        int
 }
+
+// TODO:
+// 1. save tree depth and max children for parity trees in the metadata
+// 2. store this info + other metadata info here
+// 3. store empty tree here and use it to guide through the recovery process
+// 4. when lattice requests a chunk using the index, we traverse this tree get the path to this chunk
+// 5. use the path to recursively get their CIDs and store them here
+// 6. use the CIDs to get the data and return it to lattice
+// 7. we need to store the parity tree root CIDs here
+// 8. when a parity is requested, we traverse the parity tree to get the path to this parity
+// 9. use the path to recursively get their CIDs and store them here
+// 10. use the CIDs to get the data and return it to lattice
+// 11. In case we can't find any of the blocks, should we try with MAX_DEPTH to request the chunks from lattice?
+// this would actually make another function call, that would come back here,
+// will this keep happening until the root or something else??
 
 func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string) *IPFSGetter {
 	indexToDataCIDMap := *util.NewSafeMap()

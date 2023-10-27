@@ -5,6 +5,7 @@ import (
 	"ipfs-alpha-entanglement-code/entangler"
 	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 	"ipfs-alpha-entanglement-code/util"
+	"log"
 	"sync"
 
 	"golang.org/x/xerrors"
@@ -32,25 +33,46 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 
 	/* get merkle tree from IPFS and flatten the tree */
 
-	root, err := c.GetMerkleTree(rootCID, &entangler.Lattice{})
+	root, maxChildren, maxDepth, err := c.GetMerkleTree(rootCID, &entangler.Lattice{})
 	if err != nil {
 		return rootCID, "", nil, xerrors.Errorf("could not read merkle tree: %s", err)
 	}
 	nodes := root.GetFlattenedTree(s, p, true)
 	blockNum := len(nodes)
-	util.InfoPrintf(util.Green("Number of nodes in the merkle tree is %d. Node sequence:"), blockNum)
+	leaves := 0
+	util.LogPrintf(util.Green("Number of nodes in the merkle tree is %d. Node sequence:"), blockNum)
 	for _, node := range nodes {
-		util.InfoPrintf(util.Green(" %d"), node.PreOrderIdx)
+		util.LogPrintf(util.Green(" %d"), node.PreOrderIdx)
+		data, err := node.Data()
+
+		if len(node.Children) == 0 {
+			leaves++
+		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		util.LogPrintf("Data size: %d", len(data))
+		util.LogPrintf("Child number: %d", len(node.Children))
 	}
-	util.InfoPrintf("\n")
+	util.LogPrintf("\n")
 	util.LogPrintf("Finish reading and flattening file's merkle tree from IPFS")
 
 	/* generate entanglement */
 
-	parityCIDs, err := c.generateEntanglementAndUpload(alpha, s, p, nodes)
+	parityCIDs, parityBlocks, err := c.generateEntanglementAndUpload(alpha, s, p, nodes)
 	if err != nil {
 		return rootCID, "", nil, err
 	}
+
+	// init cluster connector. Delay th fail after all uploading to IPFS finishes
+	clusterErr := c.InitIPFSClusterConnector()
+	if clusterErr != nil {
+		return rootCID, metaCID, nil, clusterErr
+	}
+
+	/* pin files in cluster */
+	treeCids, err := c.pinAlphaEntanglements(alpha, parityBlocks)
 
 	/* Store Metatdata */
 
@@ -65,6 +87,13 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 		RootCID:         rootCID,
 		DataCIDIndexMap: cidMap,
 		ParityCIDs:      parityCIDs,
+		//new fields
+		NumBlocks:       len(nodes), // N
+		OriginalFileCID: rootCID,
+		TreeCIDs:        treeCids,
+		MaxChildren:     maxChildren, // K
+		Leaves:          leaves,      // L
+		Depth:           maxDepth,    // D
 	}
 	rawMetadata, err := json.Marshal(metaData)
 	if err != nil {
@@ -76,14 +105,6 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 	}
 	util.LogPrintf("File CID: %s. MetaFile CID: %s", rootCID, metaCID)
 
-	// init cluster connector. Delay th fail after all uploading to IPFS finishes
-	clusterErr := c.InitIPFSClusterConnector()
-	if clusterErr != nil {
-		return rootCID, metaCID, nil, clusterErr
-	}
-
-	/* pin files in cluster */
-
 	pinResult = c.pinMetadataAndParities(metaCID, parityCIDs)
 
 	return rootCID, metaCID, pinResult, nil
@@ -91,7 +112,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 
 // generateLattice takes a slice of flattened tree as well as alpha, s, p to perform alpha entanglement
 func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
-	nodes []*ipfsconnector.TreeNode) ([][]string, error) {
+	nodes []*ipfsconnector.TreeNode) ([][]string, [][][]byte, error) {
 
 	blockNum := len(nodes)
 	dataChan := make(chan []byte, blockNum)
@@ -125,12 +146,18 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 		parityCIDs[k] = make([]string, blockNum)
 	}
 
+	parityBlocks := make([][][]byte, alpha)
+	for k := 0; k < alpha; k++ {
+		parityBlocks[k] = make([][]byte, blockNum)
+	}
+
 	var waitGroupAdd sync.WaitGroup
 	for block := range parityChan {
 		waitGroupAdd.Add(1)
 
 		go func(block entangler.EntangledBlock) {
 			defer waitGroupAdd.Done()
+			parityBlocks[block.Strand][block.LeftBlockIndex-1] = block.Data
 
 			// upload file to IPFS network
 			blockCID, err := c.AddFileFromMem(block.Data)
@@ -145,13 +172,85 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 	for k := 0; k < alpha; k++ {
 		for i, parity := range parityCIDs[k] {
 			if len(parity) == 0 {
-				return nil, xerrors.Errorf("could not upload parity %d on strand %d\n", i, k)
+				return nil, nil, xerrors.Errorf("could not upload parity %d on strand %d\n", i, k)
 			}
 		}
 		util.LogPrintf("Finish uploading entanglement %d", k)
 	}
 
+	// c.pinAlphaEntanglements(alpha, parityBlocks)
+
+	return parityCIDs, parityBlocks, nil
+}
+
+func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]string, error) {
+	// for each strand, merge all bytes into one byte array
+	// then upload the whole file to IPFS
+	// retreieve the merkle tree of each file
+	// for each tree, recursively pin the root node and all its children
+	// finally return each of the strand's root node's CID
+
+	parityCIDs := make([]string, alpha)
+	for k := 0; k < alpha; k++ {
+		// merge all bytes into one byte array
+		var mergedParity []byte
+		util.LogPrintf("Merging entanglement %d", k)
+		for _, block := range parityBlocks[k] {
+			util.LogPrintf("Parity blok size: %d", len(block))
+			mergedParity = append(mergedParity, block...)
+		}
+
+		// print mergedParity size
+		util.LogPrintf("Merged parity size: %d", len(mergedParity))
+		// upload file to IPFS network
+		blockCID, err := c.AddFileFromMem(mergedParity)
+		if err != nil {
+			return nil, xerrors.Errorf("could not upload parity %d: %s", k, err)
+		}
+
+		// pin the whole file block by block
+		err = c.pinEntanglementTree(blockCID)
+		if err != nil {
+			return nil, xerrors.Errorf("could not pin parity %d: %s", k, err)
+		}
+
+		util.LogPrintf("Finish uploading entanglement %d with root cid %s", k, blockCID)
+		parityCIDs[k] = blockCID
+	}
+
 	return parityCIDs, nil
+}
+
+func (c *Client) pinEntanglementTree(entaglementCID string) error {
+	// get the merkle tree from IPFS
+	tree, _, _, err := c.GetMerkleTree(entaglementCID, nil)
+	if err != nil {
+		return xerrors.Errorf("could not get merkle tree: %s", err)
+	}
+
+	// recursively pin the root node and all its children
+	var walker func(*ipfsconnector.TreeNode)
+	walker = func(parent *ipfsconnector.TreeNode) {
+		if parent == nil {
+			return
+		}
+		util.LogPrintf("pinning node %s", parent.CID)
+		// pin the current node
+		err := c.IPFSClusterConnector.AddPinDirect(parent.CID, 1)
+		if err != nil {
+			log.Printf("could not pin node %s: %s", parent.CID, err)
+			return
+		}
+		if len(parent.Children) > 0 {
+			for _, child := range parent.Children {
+				walker(child)
+			}
+		}
+	}
+
+	walker(tree)
+
+	return nil
 }
 
 // pinMetadataAndParities pins the metadata and parities in IPFS cluster in the non-blocking way

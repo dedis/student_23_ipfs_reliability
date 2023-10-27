@@ -14,6 +14,13 @@ type Metadata struct {
 	S     int
 	P     int
 
+	OriginalFileCID string
+	TreeCIDs        []string
+	NumBlocks       int // N
+	MaxChildren     int // K
+	Leaves          int // L
+	Depth           int // D
+
 	RootCID string
 
 	DataCIDIndexMap map[string]int

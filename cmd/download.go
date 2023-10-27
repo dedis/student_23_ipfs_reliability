@@ -44,13 +44,13 @@ func (c *Client) directDownload(rootCID string, path string) (out string, err er
 
 // downloadAndRecover interacts with IPFS through lattice, It launches recovery if any data is missing
 func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metadata,
-	option DownloadOption) (data []byte, repaired bool, err error) {
+	option DownloadOption, tree *ipfsconnector.EmptyTreeNode) (data []byte, repaired bool, err error) {
 
 	data = []byte{}
 	repaired = false
-	var walker func(string) error
-	walker = func(cid string) (err error) {
-		chunk, hasRepaired, err := lattice.GetChunk(metaData.DataCIDIndexMap[cid])
+	var walker func(*ipfsconnector.EmptyTreeNode) error
+	walker = func(node *ipfsconnector.EmptyTreeNode) (err error) {
+		chunk, hasRepaired, err := lattice.GetChunk(node.LatticeIdx)
 		if err != nil {
 			return xerrors.Errorf("fail to recover chunk with CID: %s", err)
 		}
@@ -59,7 +59,7 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 		if hasRepaired {
 			// Problem: does trimming zero always works?
 			chunk = bytes.Trim(chunk, "\x00")
-			err = c.dataReupload(chunk, cid, option.UploadRecoverData)
+			err = c.dataReupload(chunk, node.CID, option.UploadRecoverData)
 			if err != nil {
 				return err
 			}
@@ -72,8 +72,14 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 			return xerrors.Errorf("fail to parse raw data: %s", err)
 		}
 		links := dagNode.Links()
-		for _, link := range links {
-			err = walker(link.Cid.String())
+
+		if len(links) != len(node.Children) {
+			return xerrors.Errorf("number of links mismatch: %d expected but %d provided", len(node.Children), len(links))
+		}
+
+		for i, link := range links {
+			node.Children[i].CID = link.Cid.String()
+			err = walker(node.Children[i])
 			if err != nil {
 				return err
 			}
@@ -88,7 +94,7 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 		}
 		return err
 	}
-	err = walker(metaData.RootCID)
+	err = walker(tree)
 	return data, repaired, err
 }
 
@@ -100,6 +106,10 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 		return "", xerrors.Errorf("fail to download metaData: %s", err)
 	}
 	util.LogPrintf("Finish downloading metaFile")
+
+	// Construct empty tree
+	merkleTree := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
+	merkleTree.CID = metaData.OriginalFileCID
 
 	/* create lattice */
 	// create getter
@@ -117,8 +127,28 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	lattice.Init()
 	util.LogPrintf("Finish generating lattice")
 
+	// // download alpha entanglement file
+	// horizontal_parities, err := c.GetFileToMem("QmTveV2RHvyTVcXYCWwkkV3w5waQtTZnKfkU8fxbNjUEN7")
+	// if err != nil {
+	// 	return "", xerrors.Errorf("fail to download alpha entanglement file: %s", err)
+	// }
+
+	// // split horizontal parities into chunkNum chunks without a separator
+	// // just divide total size by chunkNum and split
+	// horizontal_parities_split := make([][]byte, chunkNum)
+	// chunkSize := len(horizontal_parities) / chunkNum
+	// for i := 0; i < chunkNum; i++ {
+	// 	horizontal_parities_split[i] = horizontal_parities[i*chunkSize : (i+1)*chunkSize]
+	// }
+
+	// k := 0
+	// // for each chunk, update lattice with parity blocks
+	// for i := 0; i < chunkNum; i++ {
+	// 	lattice.UpdateParity(i, k, horizontal_parities_split[i])
+	// }
+
 	/* download & recover file from IPFS */
-	data, repaired, errDownload := c.downloadAndRecover(lattice, metaData, option)
+	data, repaired, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree)
 	if errDownload != nil {
 		err = errDownload
 		return

@@ -152,6 +152,22 @@ func (c *Connector) AddPin(cid string, replicationFactor int) error {
 	return err
 }
 
+func (c *Connector) AddPinDirect(cid string, replicationFactor int) error {
+	/* Add a new CID to the cluster,  it uses the default replication
+	factor that is specified in the CLUSTER configuration file */
+	peerID := c.peerIDs[c.currentIdx]
+	c.currentIdx = (c.currentIdx + 1) % len(c.peerIDs)
+	postURL := fmt.Sprintf("%s/pins/ipfs/%s?mode=direct&name=&replication-max="+
+		"%d&replication-min=%d&shard-size=0&user-allocations=%s",
+		c.url, cid, replicationFactor, replicationFactor, peerID)
+	resp, err := http.PostForm(postURL, nil)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return err
+}
+
 // PeerLoad checks the load balance of the cluster, namely how many blocks is stored on each
 // cluster peer
 func (c *Connector) PeerLoad() (string, error) {
