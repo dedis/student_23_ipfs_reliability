@@ -4,6 +4,7 @@ import (
 	"ipfs-alpha-entanglement-code/entangler"
 	"ipfs-alpha-entanglement-code/util"
 
+	dag "github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -15,6 +16,13 @@ type IPFSGetter struct {
 	Parity          [][]string
 	ParityFilter    []map[int]struct{}
 	BlockNum        int
+
+	OriginalFileCID string
+	TreeCIDs        []string
+	NumBlocks       int
+	EmptyTree       *EmptyTreeNode
+	ParentMap       map[int]int            // maps lattice index of child to lattice index of parent
+	NodeMap         map[int]*EmptyTreeNode // maps lattice index of a certain block to its tree node
 }
 
 // TODO:
@@ -32,7 +40,7 @@ type IPFSGetter struct {
 // this would actually make another function call, that would come back here,
 // will this keep happening until the root or something else??
 
-func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string) *IPFSGetter {
+func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string, fileCid string, treeCids []string, numBlocks int, emptyTree *EmptyTreeNode, parentMap map[int]int, nodeMap map[int]*EmptyTreeNode) *IPFSGetter {
 	indexToDataCIDMap := *util.NewSafeMap()
 	indexToDataCIDMap.AddReverseMap(CIDIndexMap)
 	return &IPFSGetter{
@@ -40,6 +48,14 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 		DataIndexCIDMap: indexToDataCIDMap,
 		Parity:          parityCIDs,
 		BlockNum:        len(CIDIndexMap),
+
+		// New Fields
+		OriginalFileCID: fileCid,
+		TreeCIDs:        treeCids,
+		NumBlocks:       numBlocks,
+		EmptyTree:       emptyTree,
+		ParentMap:       parentMap,
+		NodeMap:         nodeMap,
 	}
 }
 
@@ -71,6 +87,103 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	if strand < 0 || strand > len(getter.Parity) {
 		err := xerrors.Errorf("invalid strand")
 		return nil, err
+	}
+
+	/* Get the target CID of the block */
+	cid := getter.Parity[strand][index-1]
+
+	/* Get the parity, mask to represent the parity loss */
+	if getter.ParityFilter != nil && len(getter.ParityFilter) > strand && getter.ParityFilter[strand] != nil {
+		if _, ok := getter.ParityFilter[strand][index]; ok {
+			err := xerrors.Errorf("no parity exists")
+			return nil, err
+		}
+	}
+
+	data, err := getter.GetFileToMem(cid)
+	return data, err
+
+}
+
+func findIthLeaf(root *TreeNode, i int) *TreeNode {
+	var count int
+
+	var dfs func(node *TreeNode) *TreeNode
+	dfs = func(node *TreeNode) *TreeNode {
+		if node == nil {
+			return nil
+		}
+
+		// If current node is a leaf
+		if node.Left == nil && node.Right == nil {
+			count++
+			if count == i {
+				return node
+			}
+		}
+
+		// Recursively traverse left subtree
+		left := dfs(node.Left)
+		if left != nil {
+			return left
+		}
+
+		// Recursively traverse right subtree
+		right := dfs(node.Right)
+		if right != nil {
+			return right
+		}
+
+		return nil
+	}
+
+	return dfs(root)
+}
+
+func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, error) {
+	if index < 1 || index > getter.NumBlocks {
+		err := xerrors.Errorf("invalid index")
+		return nil, err
+	}
+	if strand < 0 || strand > len(getter.TreeCIDs) {
+		err := xerrors.Errorf("invalid strand")
+		return nil, err
+	}
+
+	raw_block, err := getter.GetRawBlock(getter.TreeCIDs[strand])
+
+	if err != nil {
+		return nil, err
+	}
+
+	dag_node, err := getter.GetDagNodeFromRawBytes(raw_block)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Optimize find the ith leaf!
+	leaf_curr_count := 0
+	var find_ith_leaf func(node *dag.ProtoNode) (*dag.ProtoNode, error)
+	find_ith_leaf = func(node *dag.ProtoNode) (*dag.ProtoNode, error) {
+		if len(node.Links()) == 0 {
+			leaf_curr_count++
+			if leaf_curr_count == index {
+				return node, nil
+			}
+		}
+
+		for _, link := range node.Links() {
+			raw_child, err := getter.GetRawBlock(getter.TreeCIDs[strand])
+
+			if err != nil {
+				return nil, err
+			}
+
+			dag_node, err := getter.GetDagNodeFromRawBytes(raw_child)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	/* Get the target CID of the block */

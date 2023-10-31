@@ -108,7 +108,7 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	util.LogPrintf("Finish downloading metaFile")
 
 	// Construct empty tree
-	merkleTree := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
+	merkleTree, child_parent_index_map, index_node_map := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
 	merkleTree.CID = metaData.OriginalFileCID
 
 	/* create lattice */

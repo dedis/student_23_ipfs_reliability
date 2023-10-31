@@ -190,7 +190,26 @@ func (n *TreeNode) GetLeafNodes() []*TreeNode {
 // 4. Total Number of nodes: N
 // Returns a tree with N nodes
 // ConstructTree constructs the tree as described
-func ConstructTree(L, K, D, N, s, p int) *EmptyTreeNode {
+func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*EmptyTreeNode) {
+
+	// create a map from lattice index of child to parent
+	child_parent := make(map[int]int)
+
+	// map lattice index to tree node
+	index_map := make(map[int]*EmptyTreeNode)
+
+	var map_nodes func(*EmptyTreeNode)
+	map_nodes = func(node *EmptyTreeNode) {
+		if node == nil {
+			return
+		}
+
+		index_map[node.LatticeIdx] = node
+		for _, child := range node.Children {
+			child_parent[child.LatticeIdx] = node.LatticeIdx
+			map_nodes(child)
+		}
+	}
 
 	currentPreOrderIdx := 0
 	var assignPreOrderIndex func(*EmptyTreeNode)
@@ -253,5 +272,8 @@ func ConstructTree(L, K, D, N, s, p int) *EmptyTreeNode {
 	// Swap the lattice idices
 	root.swapUnflattenedTree(s, p, N)
 
-	return root
+	child_parent[root.LatticeIdx] = root.LatticeIdx
+	map_nodes(root)
+
+	return root, child_parent, index_map
 }
