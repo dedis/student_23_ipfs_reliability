@@ -114,7 +114,7 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	/* create lattice */
 	// create getter
 	chunkNum := len(metaData.DataCIDIndexMap)
-	getter := ipfsconnector.CreateIPFSGetter(c.IPFSConnector, metaData.DataCIDIndexMap, metaData.ParityCIDs)
+	getter := ipfsconnector.CreateIPFSGetter(c.IPFSConnector, metaData.DataCIDIndexMap, metaData.ParityCIDs, metaData.OriginalFileCID, metaData.TreeCIDs, metaData.NumBlocks, merkleTree, child_parent_index_map, index_node_map)
 	if len(option.DataFilter) > 0 {
 		getter.DataFilter = make(map[int]struct{}, len(option.DataFilter))
 		for _, index := range option.DataFilter {

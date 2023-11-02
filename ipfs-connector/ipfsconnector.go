@@ -120,7 +120,7 @@ func (c *IPFSConnector) GetMerkleTree(cid string, lattice *entangler.Lattice) (*
 			maxChildren = len(rootNodeFile.Links)
 		}
 
-		maxDepth := 0
+		maxDepth := currentDepth
 
 		// iterate all links that this block points to
 		if len(rootNodeFile.Links) > 0 {
@@ -142,7 +142,7 @@ func (c *IPFSConnector) GetMerkleTree(cid string, lattice *entangler.Lattice) (*
 		return rootNode, maxDepth, nil
 	}
 
-	node, depth, err := getMerkleNode(cid, 0)
+	node, depth, err := getMerkleNode(cid, 1)
 
 	return node, maxChildren, depth, err
 }

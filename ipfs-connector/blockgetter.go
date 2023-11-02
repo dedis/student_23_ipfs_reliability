@@ -59,86 +59,108 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 	}
 }
 
+// Given an index, first check if this node exists already in the tree,
+// it it does, return the data from the node,
+// if it doesn't, find the parent of this index, and repeat the procedure,
+// we do this until we have an index that either doesn't have parent or whose parent is the same and still can't find its data
 func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
-	/* Get the target CID of the block */
-	cid, ok := getter.DataIndexCIDMap.Get(index)
-	if !ok {
-		err := xerrors.Errorf("invalid index")
-		return nil, err
+
+	target_node := getter.NodeMap[index]
+
+	// if node contains data just return the data
+	if target_node.data != nil {
+		return target_node.data, nil
 	}
 
-	/* get the data, mask to represent the data loss */
-	if getter.DataFilter != nil {
-		if _, ok = getter.DataFilter[index]; ok {
-			err := xerrors.Errorf("no data exists")
-			return nil, err
-		}
-	}
-	data, err := getter.GetRawBlock(cid)
-	return data, err
+	for {
+		// if node doesn't contain data, but the cid exists,
+		// then we use the cid to fetch the data from ipfs
+		if target_node.CID != "" {
+			raw_block, err := getter.GetRawBlock(target_node.CID)
+			if err == nil {
+				// populate the node with data and links if exists
+				dag_node, err := getter.GetDagNodeFromRawBytes(raw_block)
+				if err != nil {
 
-}
+					if len(dag_node.Links()) > 0 {
+						target_node.data = dag_node.Data()
+						for i, dag_child := range dag_node.Links() {
+							target_node.Children[i].CID = dag_child.Cid.String()
+						}
+						return target_node.data, nil
+					} else {
+						data, err := getter.GetFileDataFromDagNode(dag_node)
+						if err != nil {
+							return nil, err
+						}
+						return data, nil
+					}
 
-func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
-	if index < 1 || index > getter.BlockNum {
-		err := xerrors.Errorf("invalid index")
-		return nil, err
-	}
-	if strand < 0 || strand > len(getter.Parity) {
-		err := xerrors.Errorf("invalid strand")
-		return nil, err
-	}
+				}
 
-	/* Get the target CID of the block */
-	cid := getter.Parity[strand][index-1]
-
-	/* Get the parity, mask to represent the parity loss */
-	if getter.ParityFilter != nil && len(getter.ParityFilter) > strand && getter.ParityFilter[strand] != nil {
-		if _, ok := getter.ParityFilter[strand][index]; ok {
-			err := xerrors.Errorf("no parity exists")
-			return nil, err
-		}
-	}
-
-	data, err := getter.GetFileToMem(cid)
-	return data, err
-
-}
-
-func findIthLeaf(root *TreeNode, i int) *TreeNode {
-	var count int
-
-	var dfs func(node *TreeNode) *TreeNode
-	dfs = func(node *TreeNode) *TreeNode {
-		if node == nil {
-			return nil
-		}
-
-		// If current node is a leaf
-		if node.Left == nil && node.Right == nil {
-			count++
-			if count == i {
-				return node
 			}
 		}
 
-		// Recursively traverse left subtree
-		left := dfs(node.Left)
-		if left != nil {
-			return left
+		// if node doesn't contain data and the cid doesn't exist,
+		// then we need to find the parent of this node and repeat the procedure
+		parent_index, ok := getter.ParentMap[index]
+		if !ok || parent_index == index {
+			return nil, xerrors.Errorf("no data exists")
 		}
 
-		// Recursively traverse right subtree
-		right := dfs(node.Right)
-		if right != nil {
-			return right
+		_, err := getter.GetData(parent_index)
+		if err != nil {
+			return nil, err
 		}
-
-		return nil
 	}
 
-	return dfs(root)
 }
+
+// func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
+// 	/* Get the target CID of the block */
+// 	cid, ok := getter.DataIndexCIDMap.Get(index)
+// 	if !ok {
+// 		err := xerrors.Errorf("invalid index")
+// 		return nil, err
+// 	}
+
+// 	/* get the data, mask to represent the data loss */
+// 	if getter.DataFilter != nil {
+// 		if _, ok = getter.DataFilter[index]; ok {
+// 			err := xerrors.Errorf("no data exists")
+// 			return nil, err
+// 		}
+// 	}
+// 	data, err := getter.GetRawBlock(cid)
+// 	return data, err
+
+// }
+
+// func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
+// 	if index < 1 || index > getter.BlockNum {
+// 		err := xerrors.Errorf("invalid index")
+// 		return nil, err
+// 	}
+// 	if strand < 0 || strand > len(getter.Parity) {
+// 		err := xerrors.Errorf("invalid strand")
+// 		return nil, err
+// 	}
+
+// 	/* Get the target CID of the block */
+// 	cid := getter.Parity[strand][index-1]
+
+// 	/* Get the parity, mask to represent the parity loss */
+// 	if getter.ParityFilter != nil && len(getter.ParityFilter) > strand && getter.ParityFilter[strand] != nil {
+// 		if _, ok := getter.ParityFilter[strand][index]; ok {
+// 			err := xerrors.Errorf("no parity exists")
+// 			return nil, err
+// 		}
+// 	}
+
+// 	data, err := getter.GetFileToMem(cid)
+// 	return data, err
+
+// }
 
 func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, error) {
 	if index < 1 || index > getter.NumBlocks {
@@ -162,6 +184,7 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 	}
 
 	// TODO: Optimize find the ith leaf!
+	// by caching what has been seen so far!
 	leaf_curr_count := 0
 	var find_ith_leaf func(node *dag.ProtoNode) (*dag.ProtoNode, error)
 	find_ith_leaf = func(node *dag.ProtoNode) (*dag.ProtoNode, error) {
@@ -173,31 +196,40 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 		}
 
 		for _, link := range node.Links() {
-			raw_child, err := getter.GetRawBlock(getter.TreeCIDs[strand])
+			raw_child, err := getter.GetRawBlock(link.Cid.String())
 
 			if err != nil {
 				return nil, err
 			}
 
-			dag_node, err := getter.GetDagNodeFromRawBytes(raw_child)
+			dag_child, err := getter.GetDagNodeFromRawBytes(raw_child)
 			if err != nil {
 				return nil, err
 			}
+
+			leaf, err := find_ith_leaf(dag_child)
+			if err != nil {
+				return nil, err
+			}
+			if leaf != nil {
+				return leaf, nil
+			}
 		}
+
+		return nil, nil
 	}
 
-	/* Get the target CID of the block */
-	cid := getter.Parity[strand][index-1]
+	leaf, err := find_ith_leaf(dag_node)
 
-	/* Get the parity, mask to represent the parity loss */
-	if getter.ParityFilter != nil && len(getter.ParityFilter) > strand && getter.ParityFilter[strand] != nil {
-		if _, ok := getter.ParityFilter[strand][index]; ok {
-			err := xerrors.Errorf("no parity exists")
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	data, err := getter.GetFileToMem(cid)
+	if leaf == nil {
+		return nil, xerrors.Errorf("no parity exists")
+	}
+
+	data, err := getter.GetFileDataFromDagNode(leaf)
+
 	return data, err
-
 }

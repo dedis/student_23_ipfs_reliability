@@ -1,6 +1,7 @@
 package ipfsconnector
 
 type EmptyTreeNode struct {
+	data        []byte
 	Children    []*EmptyTreeNode
 	Parent      *EmptyTreeNode
 	Depth       int
@@ -182,6 +183,14 @@ func (n *TreeNode) GetLeafNodes() []*TreeNode {
 	walker(n)
 	return nodes
 }
+
+// TODO:VERY IMPORTANT - update the tree construction logic
+// now we only need number of leaves + max children
+// 1. divide the total leaves over max children + 1 (if remainder is not zero) => that's the first level
+// 2. for each level, if the number of nodes is greater than max children, then create another level
+// 3. we keep doing that until the number of nodes we've created in this level are less than max children, that's root
+// 4. need to keep track of the depth of the tree, verify with the stored depth
+// 5. it would also be helpful to verify total number of nodes is same as the stored number of nodes
 
 // Construct an empty tree given the following
 // 1. the number of leaves: L
