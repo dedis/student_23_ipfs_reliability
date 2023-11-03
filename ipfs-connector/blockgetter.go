@@ -65,6 +65,11 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 // we do this until we have an index that either doesn't have parent or whose parent is the same and still can't find its data
 func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
+	//print getter Datafilter
+
+	for k := range getter.DataFilter {
+		util.LogPrintf("DataFilter: %d", k)
+	}
 	/* get the data, mask to represent the data loss */
 	if getter.DataFilter != nil {
 		if _, ok := getter.DataFilter[index]; ok {
@@ -93,39 +98,30 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 		if target_node.CID != "" {
 			util.LogPrintf("Found CID %s for index %d", target_node.CID, index)
 			util.LogPrintf("Attempting to download block using its cid")
-			raw_block, err := getter.GetRawBlock(target_node.CID)
-			if err == nil {
-				util.LogPrintf("Successfully downloaded block using its cid")
-				// populate the node with data and links if exists
-				dag_node, err := getter.GetDagNodeFromRawBytes(raw_block)
+			raw_node, err := getter.shell.ObjectGet(target_node.CID)
+			if err != nil {
+				return nil, err
+			}
+			data, err := getter.GetRawBlock(target_node.CID)
+			if err != nil {
+				return nil, err
+			}
 
-				if err != nil {
-					util.LogPrintf("Successfully decoded dag node")
-					if len(dag_node.Links()) > 0 {
-						util.LogPrintf("Found %d links for index %d", len(dag_node.Links()), index)
-						target_node.data = dag_node.Data()
-						for i, dag_child := range dag_node.Links() {
-							target_node.Children[i].CID = dag_child.Cid.String()
-						}
+			util.LogPrintf("Successfully downloaded block using its cid")
+			// populate the node with data and links if exists
+			if len(raw_node.Links) > 0 {
+				util.LogPrintf("Found %d links for index %d", len(raw_node.Links), index)
 
-						util.LogPrintf("Successfully populated node with data and links")
-						return target_node.data, nil
-					} else {
-						util.LogPrintf("Found no links for index %d, setting its data.", index)
-						data, err := getter.GetFileDataFromDagNode(dag_node)
-						if err != nil {
-							return nil, err
-						}
-						target_node.data = data
-						util.LogPrintf("Successfully decoded file data for index %d", index)
-						return data, nil
-					}
-
+				for i, dag_child := range raw_node.Links {
+					target_node.Children[i].CID = dag_child.Hash
 				}
 
-				return nil, err
-
+				util.LogPrintf("Successfully populated node with links")
 			}
+
+			target_node.data = data
+			return data, nil
+
 		}
 
 		// if node doesn't contain data and the cid doesn't exist,
