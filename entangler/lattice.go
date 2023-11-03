@@ -190,9 +190,9 @@ func (l *Lattice) initLinks() {
 func (l *Lattice) downloadBlock(block *Block) (err error) {
 	var data []byte
 	if block.IsParity {
-		data, err = l.Getter.GetParity(block.Index, block.Strand)
+		data, err = l.Getter.GetParity(block.Index-1, block.Strand)
 	} else {
-		data, err = l.Getter.GetData(block.Index)
+		data, err = l.Getter.GetData(block.Index - 1)
 	}
 	if err == nil {
 		block.SetData(data, false)

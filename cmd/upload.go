@@ -41,7 +41,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 	blockNum := len(nodes)
 	leaves := 0
 	util.LogPrintf(util.Green("Number of nodes in the merkle tree is %d. Node sequence:"), blockNum)
-	for _, node := range nodes {
+	for idx, node := range nodes {
 		util.LogPrintf(util.Green(" %d"), node.PreOrderIdx)
 		data, err := node.Data()
 
@@ -54,6 +54,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 		}
 		util.LogPrintf("Data size: %d", len(data))
 		util.LogPrintf("Child number: %d", len(node.Children))
+		util.LogPrintf("Node lattice Index: %d, preorder index: %d", idx, node.PreOrderIdx)
 	}
 	util.LogPrintf("\n")
 	util.LogPrintf("Finish reading and flattening file's merkle tree from IPFS")
@@ -73,6 +74,9 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 
 	/* pin files in cluster */
 	treeCids, err := c.pinAlphaEntanglements(alpha, parityBlocks)
+	if err != nil {
+		return rootCID, "", nil, err
+	}
 
 	/* Store Metatdata */
 

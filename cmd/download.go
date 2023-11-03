@@ -50,7 +50,8 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 	repaired = false
 	var walker func(*ipfsconnector.EmptyTreeNode) error
 	walker = func(node *ipfsconnector.EmptyTreeNode) (err error) {
-		chunk, hasRepaired, err := lattice.GetChunk(node.LatticeIdx)
+		util.LogPrintf("Downloading chunk with lattice index %d and preorder index %d", node.LatticeIdx, node.PreOrderIdx)
+		chunk, hasRepaired, err := lattice.GetChunk(node.LatticeIdx + 1)
 		if err != nil {
 			return xerrors.Errorf("fail to recover chunk with CID: %s", err)
 		}
@@ -108,7 +109,12 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	util.LogPrintf("Finish downloading metaFile")
 
 	// Construct empty tree
-	merkleTree, child_parent_index_map, index_node_map := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
+	merkleTree, child_parent_index_map, index_node_map, err := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
+
+	if err != nil {
+		return "", xerrors.Errorf("fail to construct tree: %s", err)
+	}
+
 	merkleTree.CID = metaData.OriginalFileCID
 
 	/* create lattice */

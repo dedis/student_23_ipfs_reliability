@@ -1,5 +1,10 @@
 package ipfsconnector
 
+import (
+	"errors"
+	"fmt"
+)
+
 type EmptyTreeNode struct {
 	data        []byte
 	Children    []*EmptyTreeNode
@@ -199,7 +204,7 @@ func (n *TreeNode) GetLeafNodes() []*TreeNode {
 // 4. Total Number of nodes: N
 // Returns a tree with N nodes
 // ConstructTree constructs the tree as described
-func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*EmptyTreeNode) {
+func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*EmptyTreeNode, error) {
 
 	// create a map from lattice index of child to parent
 	child_parent := make(map[int]int)
@@ -235,45 +240,86 @@ func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*
 		}
 	}
 
-	// Helper function to create a new node with specific depth
-	createNode := func(depth int) *EmptyTreeNode {
-		return &EmptyTreeNode{
-			Depth: depth,
-		}
-	}
-
-	// Create leaves
-	var leaves []*EmptyTreeNode
+	// Create initial set of leaves
+	nodes := make([]*EmptyTreeNode, L)
 	for i := 0; i < L; i++ {
-		leaves = append(leaves, createNode(D))
+		nodes[i] = &EmptyTreeNode{}
 	}
 
-	nodes := leaves
+	totalNodes := L
+	currentDepth := 1
 
-	// TODO: Make sure the logic is correct
-	// Construct tree from bottom up
-	for depth := D; depth > 1; depth-- {
-		var newNodes []*EmptyTreeNode
-		for len(nodes) > K {
-			children := nodes[:K]
-			nodes = nodes[K:]
-
-			node := createNode(depth - 1)
-			node.Children = children
-			for _, child := range children {
-				child.Parent = node
+	// Build tree bottom-up until only one node (root) remains
+	for len(nodes) > 1 && currentDepth <= D {
+		var parents []*EmptyTreeNode
+		for i := 0; i < len(nodes); i += K {
+			end := i + K
+			if end > len(nodes) {
+				end = len(nodes)
 			}
-			newNodes = append(newNodes, node)
+
+			parent := &EmptyTreeNode{}
+			for j := i; j < end; j++ {
+				nodes[j].Parent = parent
+				parent.Children = append(parent.Children, nodes[j])
+			}
+			parents = append(parents, parent)
+			totalNodes++
 		}
-		newNodes = append(newNodes, nodes...)
-		nodes = newNodes
+		nodes = parents
+		currentDepth++
 	}
 
-	root := createNode(1)
-	root.Children = nodes
-	for _, node := range nodes {
-		node.Parent = root
+	if len(nodes) != 1 {
+		return nil, nil, nil, errors.New("unexpected error in tree construction")
 	}
+
+	// Check if the constructed tree meets the expected depth and total nodes
+	if currentDepth != D || totalNodes != N {
+		return nil, nil, nil, fmt.Errorf("constructed tree does not meet the criteria. Depth: %d, Nodes: %d", currentDepth, totalNodes)
+	}
+
+	root := nodes[0]
+
+	// // Helper function to create a new node with specific depth
+	// createNode := func(depth int) *EmptyTreeNode {
+	// 	return &EmptyTreeNode{
+	// 		Depth: depth,
+	// 	}
+	// }
+
+	// // Create leaves
+	// var leaves []*EmptyTreeNode
+	// for i := 0; i < L; i++ {
+	// 	leaves = append(leaves, createNode(D))
+	// }
+
+	// nodes := leaves
+
+	// // TODO: Make sure the logic is correct
+	// // Construct tree from bottom up
+	// for depth := D; depth > 1; depth-- {
+	// 	var newNodes []*EmptyTreeNode
+	// 	for len(nodes) > K {
+	// 		children := nodes[:K]
+	// 		nodes = nodes[K:]
+
+	// 		node := createNode(depth - 1)
+	// 		node.Children = children
+	// 		for _, child := range children {
+	// 			child.Parent = node
+	// 		}
+	// 		newNodes = append(newNodes, node)
+	// 	}
+	// 	newNodes = append(newNodes, nodes...)
+	// 	nodes = newNodes
+	// }
+
+	// root := createNode(1)
+	// root.Children = nodes
+	// for _, node := range nodes {
+	// 	node.Parent = root
+	// }
 
 	// Assign pre-order indexes top-down
 	assignPreOrderIndex(root)
@@ -284,5 +330,5 @@ func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*
 	child_parent[root.LatticeIdx] = root.LatticeIdx
 	map_nodes(root)
 
-	return root, child_parent, index_map
+	return root, child_parent, index_map, nil
 }

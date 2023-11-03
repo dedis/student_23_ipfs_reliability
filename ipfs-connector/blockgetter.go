@@ -65,10 +65,25 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 // we do this until we have an index that either doesn't have parent or whose parent is the same and still can't find its data
 func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
-	target_node := getter.NodeMap[index]
+	/* get the data, mask to represent the data loss */
+	if getter.DataFilter != nil {
+		if _, ok := getter.DataFilter[index]; ok {
+			err := xerrors.Errorf("no data exists")
+			return nil, err
+		}
+	}
+
+	util.LogPrintf("Getting data for index %d", index)
+	target_node, ok := getter.NodeMap[index]
+
+	if !ok {
+		util.LogPrintf("Could not find node for index %d", index)
+		return nil, xerrors.Errorf("no node exists for such index")
+	}
 
 	// if node contains data just return the data
 	if target_node.data != nil {
+		util.LogPrintf("Found data for index %d", index)
 		return target_node.data, nil
 	}
 
@@ -76,38 +91,52 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 		// if node doesn't contain data, but the cid exists,
 		// then we use the cid to fetch the data from ipfs
 		if target_node.CID != "" {
+			util.LogPrintf("Found CID %s for index %d", target_node.CID, index)
+			util.LogPrintf("Attempting to download block using its cid")
 			raw_block, err := getter.GetRawBlock(target_node.CID)
 			if err == nil {
+				util.LogPrintf("Successfully downloaded block using its cid")
 				// populate the node with data and links if exists
 				dag_node, err := getter.GetDagNodeFromRawBytes(raw_block)
-				if err != nil {
 
+				if err != nil {
+					util.LogPrintf("Successfully decoded dag node")
 					if len(dag_node.Links()) > 0 {
+						util.LogPrintf("Found %d links for index %d", len(dag_node.Links()), index)
 						target_node.data = dag_node.Data()
 						for i, dag_child := range dag_node.Links() {
 							target_node.Children[i].CID = dag_child.Cid.String()
 						}
+
+						util.LogPrintf("Successfully populated node with data and links")
 						return target_node.data, nil
 					} else {
+						util.LogPrintf("Found no links for index %d, setting its data.", index)
 						data, err := getter.GetFileDataFromDagNode(dag_node)
 						if err != nil {
 							return nil, err
 						}
+						target_node.data = data
+						util.LogPrintf("Successfully decoded file data for index %d", index)
 						return data, nil
 					}
 
 				}
+
+				return nil, err
 
 			}
 		}
 
 		// if node doesn't contain data and the cid doesn't exist,
 		// then we need to find the parent of this node and repeat the procedure
+		util.LogPrintf("Could not find cid for index %d, finding its parent", index)
 		parent_index, ok := getter.ParentMap[index]
 		if !ok || parent_index == index {
 			return nil, xerrors.Errorf("no data exists")
 		}
 
+		util.LogPrintf("Found parent for index %d, with index %d", index, parent_index)
 		_, err := getter.GetData(parent_index)
 		if err != nil {
 			return nil, err
@@ -163,6 +192,7 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 // }
 
 func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, error) {
+	util.LogPrintf("Getting parity for index %d and strand %d", index, strand)
 	if index < 1 || index > getter.NumBlocks {
 		err := xerrors.Errorf("invalid index")
 		return nil, err
@@ -172,6 +202,7 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 		return nil, err
 	}
 
+	util.LogPrintf("Getting root for strand %d", strand)
 	raw_block, err := getter.GetRawBlock(getter.TreeCIDs[strand])
 
 	if err != nil {
@@ -182,6 +213,8 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
+
+	util.LogPrintf("Successfully fetched root node for strand %d", strand)
 
 	// TODO: Optimize find the ith leaf!
 	// by caching what has been seen so far!
@@ -219,6 +252,7 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 		return nil, nil
 	}
 
+	util.LogPrintf("Finding the %dth leaf for strand %d", index, strand)
 	leaf, err := find_ith_leaf(dag_node)
 
 	if err != nil {
@@ -230,6 +264,8 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 	}
 
 	data, err := getter.GetFileDataFromDagNode(leaf)
+
+	util.LogPrintf("Successfully fetched parity for index %d and strand %d", index, strand)
 
 	return data, err
 }
