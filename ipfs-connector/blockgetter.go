@@ -187,13 +187,13 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
 // }
 
-func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, error) {
+func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	util.LogPrintf("Getting parity for index %d and strand %d", index, strand)
-	if index < 1 || index > getter.NumBlocks {
+	if index < 0 || index >= getter.NumBlocks {
 		err := xerrors.Errorf("invalid index")
 		return nil, err
 	}
-	if strand < 0 || strand > len(getter.TreeCIDs) {
+	if strand < 0 || strand >= len(getter.TreeCIDs) {
 		err := xerrors.Errorf("invalid strand")
 		return nil, err
 	}
@@ -219,9 +219,10 @@ func (getter *IPFSGetter) GetParityFromTree(index int, strand int) ([]byte, erro
 	find_ith_leaf = func(node *dag.ProtoNode) (*dag.ProtoNode, error) {
 		if len(node.Links()) == 0 {
 			leaf_curr_count++
-			if leaf_curr_count == index {
+			if leaf_curr_count == index+1 {
 				return node, nil
 			}
+			return nil, nil
 		}
 
 		for _, link := range node.Links() {

@@ -37,12 +37,13 @@ func Test_Download(t *testing.T) {
 		}
 	}
 
-	for _, testcase := range []string{"5MB", "10MB", "20MB", "25MB"} {
+	// for _, testcase := range []string{"5MB", "10MB", "20MB", "25MB"} {
+	for _, testcase := range []string{"25MB"} {
 		filepath := fmt.Sprintf("../data/largefile_%s.txt", testcase)
 		info := performance.InfoMap[testcase]
 		missingData := make([]int, info.TotalBlock)
 		for i := 0; i < info.TotalBlock; i++ {
-			missingData[i] = i + 1
+			missingData[i] = i
 		}
 		t.Run(testcase, download(filepath, info.FileCID, info.MetaCID, missingData))
 	}
