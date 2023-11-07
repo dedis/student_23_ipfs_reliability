@@ -198,7 +198,7 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 
 	// TODO: Try to find if there's another way for this!
 	// we will define each block so that it would be exactly 2 * 256 KB (which is the maximum for each block in IPFS)
-	targetSize := 2 * 262144
+	// targetSize := 2 * 262144
 
 	parityCIDs := make([]string, alpha)
 	for k := 0; k < alpha; k++ {
@@ -207,9 +207,9 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		util.LogPrintf("Merging entanglement %d", k)
 		for _, block := range parityBlocks[k] {
 			util.LogPrintf("Parity blok size: %d", len(block))
-			padding := make([]byte, targetSize-len(block))
+			// padding := make([]byte, targetSize-len(block))
 			mergedParity = append(mergedParity, block...)
-			mergedParity = append(mergedParity, padding...)
+			// mergedParity = append(mergedParity, padding...)
 		}
 
 		// print mergedParity size

@@ -187,6 +187,38 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
 // }
 
+// calculateNewBlocks returns the new block indices and the byte ranges
+// for a given original block size, new block size, and original index.
+func calculateNewBlocks(originalBlockSize, newBlockSize, originalIndex int) [][3]int {
+	// Calculate the starting and ending byte for the original block
+	startByte := originalIndex * originalBlockSize
+	endByte := startByte + originalBlockSize
+
+	// Determine the start and end block numbers in the new block scheme
+	startBlock := startByte / newBlockSize
+	endBlock := (endByte - 1) / newBlockSize
+
+	// Slice to hold the result ranges
+	var result [][3]int
+
+	// If the original block is spread across multiple new blocks
+	if startBlock != endBlock {
+		// First block range
+		result = append(result, [3]int{startBlock, startByte % newBlockSize, newBlockSize})
+		// Intermediate full blocks
+		for blockIndex := startBlock + 1; blockIndex < endBlock; blockIndex++ {
+			result = append(result, [3]int{blockIndex, 0, newBlockSize})
+		}
+		// Last block range
+		result = append(result, [3]int{endBlock, 0, (endByte-1)%newBlockSize + 1})
+	} else {
+		// The original block is within one new block
+		result = append(result, [3]int{startBlock, startByte % newBlockSize, (endByte-1)%newBlockSize + 1})
+	}
+
+	return result
+}
+
 func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	util.LogPrintf("Getting parity for index %d and strand %d", index, strand)
 	if index < 0 || index >= getter.NumBlocks {
@@ -249,48 +281,72 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 		return nil, nil
 	}
 
-	util.LogPrintf("Finding the %dth leaf for strand %d", index, strand)
+	final_data := make([]byte, 0)
+	blocks := calculateNewBlocks(262158, 262144, index)
 
-	// Find the first part of the parity
-	leaf1, err := find_ith_leaf(dag_node, index*2+1)
+	for _, block := range blocks {
+		leaf_curr_count = 0
+		current_leaf, err := find_ith_leaf(dag_node, block[0]+1)
+		if err != nil {
+			return nil, err
+		}
+		if current_leaf == nil {
+			return nil, xerrors.Errorf("no parity exists")
+		}
 
-	if err != nil {
-		return nil, err
+		current_data, err := getter.GetFileDataFromDagNode(current_leaf)
+
+		if err != nil {
+			return nil, err
+		}
+
+		final_data = append(final_data, current_data[block[1]:block[2]]...)
 	}
 
-	if leaf1 == nil {
-		return nil, xerrors.Errorf("no parity exists")
-	}
+	//create new array that has the elements 1,2,3,4,5
 
-	data1, err := getter.GetFileDataFromDagNode(leaf1)
-	// data1 := leaf1.Data()
-	if err != nil {
-		return nil, err
-	}
-	// Find the second part of the parity
-	leaf_curr_count = 0
-	leaf2, err := find_ith_leaf(dag_node, (index*2 + 2))
-	if err != nil {
-		return nil, err
-	}
-	if leaf2 == nil {
-		return nil, xerrors.Errorf("no parity exists")
-	}
+	// util.LogPrintf("Finding the %dth leaf for strand %d", index, strand)
 
-	data2, err := getter.GetFileDataFromDagNode(leaf2)
-	// data2 := leaf2.Data()
+	// // Find the first part of the parity
+	// leaf1, err := find_ith_leaf(dag_node, index*2+1)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	util.LogPrintf("Successfully fetched parity for index %d and strand %d", index, strand)
+	// if leaf1 == nil {
+	// 	return nil, xerrors.Errorf("no parity exists")
+	// }
 
-	// Merge the two parts of the parity
-	data := append(data1, data2...)
+	// data1, err := getter.GetFileDataFromDagNode(leaf1)
+	// // data1 := leaf1.Data()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // Find the second part of the parity
+	// leaf_curr_count = 0
+	// leaf2, err := find_ith_leaf(dag_node, (index*2 + 2))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if leaf2 == nil {
+	// 	return nil, xerrors.Errorf("no parity exists")
+	// }
 
-	// get only the first 262158 bytes of the data
-	data = data[:262158]
+	// data2, err := getter.GetFileDataFromDagNode(leaf2)
+	// // data2 := leaf2.Data()
+
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// util.LogPrintf("Successfully fetched parity for index %d and strand %d", index, strand)
+
+	// // Merge the two parts of the parity
+	// data := append(data1, data2...)
+
+	// // get only the first 262158 bytes of the data
+	// data = data[:262158]
 
 	// get the data directly through the map
 	/* Get the target CID of the block */
@@ -298,14 +354,14 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	data_copy, err := getter.GetFileToMem(cid)
 
 	// compare the two data
-	minLength := len(data)
+	minLength := len(final_data)
 	if len(data_copy) < minLength {
 		minLength = len(data_copy)
 	}
 
 	mismatch := 0
 	for i := 0; i < minLength; i++ {
-		if data[i] != data_copy[i] {
+		if final_data[i] != data_copy[i] {
 			mismatch += 1
 		}
 	}
@@ -314,9 +370,9 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 		return nil, xerrors.Errorf("parity mismatch of size %d", mismatch)
 	}
 
-	if len(data) != len(data_copy) {
+	if len(final_data) != len(data_copy) {
 		return nil, xerrors.Errorf("parity length mismatch")
 	}
 
-	return data, err
+	return final_data, err
 }
