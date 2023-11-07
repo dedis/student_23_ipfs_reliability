@@ -215,11 +215,11 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	// TODO: Optimize find the ith leaf!
 	// by caching what has been seen so far!
 	leaf_curr_count := 0
-	var find_ith_leaf func(node *dag.ProtoNode) (*dag.ProtoNode, error)
-	find_ith_leaf = func(node *dag.ProtoNode) (*dag.ProtoNode, error) {
+	var find_ith_leaf func(node *dag.ProtoNode, idx int) (*dag.ProtoNode, error)
+	find_ith_leaf = func(node *dag.ProtoNode, idx int) (*dag.ProtoNode, error) {
 		if len(node.Links()) == 0 {
 			leaf_curr_count++
-			if leaf_curr_count == index+1 {
+			if leaf_curr_count == idx {
 				return node, nil
 			}
 			return nil, nil
@@ -237,7 +237,7 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 				return nil, err
 			}
 
-			leaf, err := find_ith_leaf(dag_child)
+			leaf, err := find_ith_leaf(dag_child, idx)
 			if err != nil {
 				return nil, err
 			}
@@ -250,19 +250,73 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	}
 
 	util.LogPrintf("Finding the %dth leaf for strand %d", index, strand)
-	leaf, err := find_ith_leaf(dag_node)
+
+	// Find the first part of the parity
+	leaf1, err := find_ith_leaf(dag_node, index*2+1)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if leaf == nil {
+	if leaf1 == nil {
 		return nil, xerrors.Errorf("no parity exists")
 	}
 
-	data, err := getter.GetFileDataFromDagNode(leaf)
+	data1, err := getter.GetFileDataFromDagNode(leaf1)
+	// data1 := leaf1.Data()
+	if err != nil {
+		return nil, err
+	}
+	// Find the second part of the parity
+	leaf_curr_count = 0
+	leaf2, err := find_ith_leaf(dag_node, (index*2 + 2))
+	if err != nil {
+		return nil, err
+	}
+	if leaf2 == nil {
+		return nil, xerrors.Errorf("no parity exists")
+	}
+
+	data2, err := getter.GetFileDataFromDagNode(leaf2)
+	// data2 := leaf2.Data()
+
+	if err != nil {
+		return nil, err
+	}
 
 	util.LogPrintf("Successfully fetched parity for index %d and strand %d", index, strand)
+
+	// Merge the two parts of the parity
+	data := append(data1, data2...)
+
+	// get only the first 262158 bytes of the data
+	data = data[:262158]
+
+	// get the data directly through the map
+	/* Get the target CID of the block */
+	cid := getter.Parity[strand][index]
+	data_copy, err := getter.GetFileToMem(cid)
+
+	// compare the two data
+	minLength := len(data)
+	if len(data_copy) < minLength {
+		minLength = len(data_copy)
+	}
+
+	mismatch := 0
+	for i := 0; i < minLength; i++ {
+		if data[i] != data_copy[i] {
+			mismatch += 1
+		}
+	}
+
+	if mismatch > 0 {
+		return nil, xerrors.Errorf("parity mismatch of size %d", mismatch)
+	}
+
+	if len(data) != len(data_copy) {
+		return nil, xerrors.Errorf("parity length mismatch")
+	}
 
 	return data, err
 }

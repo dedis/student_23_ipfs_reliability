@@ -49,6 +49,11 @@ func (c *IPFSConnector) AddFileFromMem(data []byte) (cid string, err error) {
 	return c.shell.Add(bytes.NewReader(data))
 }
 
+// AddDataFromMem takes the bytes array and upload it to IPFS network as raw leaves
+func (c *IPFSConnector) AddDataFromMem(data []byte) (cid string, err error) {
+	return c.shell.Add(bytes.NewReader(data), sh.RawLeaves(true))
+}
+
 // GetFile takes the file CID and reads it from IPFS network
 func (c *IPFSConnector) GetFile(cid string, outputPath string) error {
 	return c.shell.Get(cid, outputPath)

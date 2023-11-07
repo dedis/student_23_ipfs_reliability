@@ -174,7 +174,9 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 
 	// check if all parity blocks are added successfully
 	for k := 0; k < alpha; k++ {
+		util.LogPrintf("Displaying parities for strand %d", k)
 		for i, parity := range parityCIDs[k] {
+			util.LogPrintf("Parity %d: %s", i, parity)
 			if len(parity) == 0 {
 				return nil, nil, xerrors.Errorf("could not upload parity %d on strand %d\n", i, k)
 			}
@@ -194,6 +196,10 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 	// for each tree, recursively pin the root node and all its children
 	// finally return each of the strand's root node's CID
 
+	// TODO: Try to find if there's another way for this!
+	// we will define each block so that it would be exactly 2 * 256 KB (which is the maximum for each block in IPFS)
+	targetSize := 2 * 262144
+
 	parityCIDs := make([]string, alpha)
 	for k := 0; k < alpha; k++ {
 		// merge all bytes into one byte array
@@ -201,7 +207,9 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		util.LogPrintf("Merging entanglement %d", k)
 		for _, block := range parityBlocks[k] {
 			util.LogPrintf("Parity blok size: %d", len(block))
+			padding := make([]byte, targetSize-len(block))
 			mergedParity = append(mergedParity, block...)
+			mergedParity = append(mergedParity, padding...)
 		}
 
 		// print mergedParity size
@@ -211,6 +219,8 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		if err != nil {
 			return nil, xerrors.Errorf("could not upload parity %d: %s", k, err)
 		}
+
+		util.LogPrintf("Finish uploading entanglement %d with root cid %s", k, blockCID)
 
 		// pin the whole file block by block
 		err = c.pinEntanglementTree(blockCID)
@@ -231,6 +241,8 @@ func (c *Client) pinEntanglementTree(entaglementCID string) error {
 	if err != nil {
 		return xerrors.Errorf("could not get merkle tree: %s", err)
 	}
+	// Strand 0 , parity 0
+	//Qma3dPFfrYjS8yGbyMZCrrRNDq6oFKhykmqEnuSnAvhp85
 
 	// recursively pin the root node and all its children
 	var walker func(*ipfsconnector.TreeNode)
