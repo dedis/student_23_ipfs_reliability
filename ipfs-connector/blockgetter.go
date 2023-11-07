@@ -4,7 +4,6 @@ import (
 	"ipfs-alpha-entanglement-code/entangler"
 	"ipfs-alpha-entanglement-code/util"
 
-	dag "github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -23,6 +22,9 @@ type IPFSGetter struct {
 	EmptyTree       *EmptyTreeNode
 	ParentMap       map[int]int            // maps lattice index of child to lattice index of parent
 	NodeMap         map[int]*EmptyTreeNode // maps lattice index of a certain block to its tree node
+
+	ParityTrees    []*ParityTreeNode
+	ParityIndexMap []map[int]*ParityTreeNode
 }
 
 // TODO:
@@ -40,7 +42,7 @@ type IPFSGetter struct {
 // this would actually make another function call, that would come back here,
 // will this keep happening until the root or something else??
 
-func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string, fileCid string, treeCids []string, numBlocks int, emptyTree *EmptyTreeNode, parentMap map[int]int, nodeMap map[int]*EmptyTreeNode) *IPFSGetter {
+func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string, fileCid string, treeCids []string, numBlocks int, emptyTree *EmptyTreeNode, parentMap map[int]int, nodeMap map[int]*EmptyTreeNode, parityTrees []*ParityTreeNode, parityIndexMap []map[int]*ParityTreeNode) *IPFSGetter {
 	indexToDataCIDMap := *util.NewSafeMap()
 	indexToDataCIDMap.AddReverseMap(CIDIndexMap)
 	return &IPFSGetter{
@@ -56,6 +58,9 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 		EmptyTree:       emptyTree,
 		ParentMap:       parentMap,
 		NodeMap:         nodeMap,
+
+		ParityTrees:    parityTrees,
+		ParityIndexMap: parityIndexMap,
 	}
 }
 
@@ -87,9 +92,9 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 	}
 
 	// if node contains data just return the data
-	if target_node.data != nil {
+	if target_node.Data != nil {
 		util.LogPrintf("Found data for index %d", index)
-		return target_node.data, nil
+		return target_node.Data, nil
 	}
 
 	for {
@@ -119,7 +124,7 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 				util.LogPrintf("Successfully populated node with links")
 			}
 
-			target_node.data = data
+			target_node.Data = data
 			return data, nil
 
 		}
@@ -219,160 +224,84 @@ func calculateNewBlocks(originalBlockSize, newBlockSize, originalIndex int) [][3
 	return result
 }
 
+func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode) ([]byte, error) {
+
+	if currentNode == nil {
+		return nil, xerrors.Errorf("parity doesn't exist")
+	}
+
+	// if data already exists just return it
+	if currentNode.Data != nil {
+		return currentNode.Data, nil
+	}
+
+	for {
+		// if data doesn't exist, but cid exists, then we use the cid to fetch the data from ipfs
+		if currentNode.CID != "" {
+			rawNode, err := getter.shell.ObjectGet(currentNode.CID)
+			if err != nil {
+				return nil, err
+			}
+			rawBlock, err := getter.GetRawBlock(currentNode.CID)
+			if err != nil {
+				return nil, err
+			}
+			dagNode, err := getter.GetDagNodeFromRawBytes(rawBlock)
+			if err != nil {
+				return nil, err
+			}
+
+			// populate the node with data and links if exists
+			if len(rawNode.Links) > 0 {
+				for i, dag_child := range rawNode.Links {
+					currentNode.Children[i].CID = dag_child.Hash
+				}
+			}
+
+			currentData, err := getter.GetFileDataFromDagNode(dagNode)
+			if err != nil {
+				return nil, err
+			}
+
+			currentNode.Data = currentData
+			return currentData, nil
+		}
+
+		// if data doesn't exist and cid doesn't exist, then we need to find the parent of this node and repeat the procedure
+		if currentNode.Parent == nil {
+			return nil, xerrors.Errorf("parity doesn't have a parent")
+		}
+
+		_, err := getter.GetParityHelper(currentNode.Parent)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+}
+
 func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
-	util.LogPrintf("Getting parity for index %d and strand %d", index, strand)
-	if index < 0 || index >= getter.NumBlocks {
-		err := xerrors.Errorf("invalid index")
-		return nil, err
-	}
-	if strand < 0 || strand >= len(getter.TreeCIDs) {
-		err := xerrors.Errorf("invalid strand")
-		return nil, err
-	}
-
-	util.LogPrintf("Getting root for strand %d", strand)
-	raw_block, err := getter.GetRawBlock(getter.TreeCIDs[strand])
-
-	if err != nil {
-		return nil, err
-	}
-
-	dag_node, err := getter.GetDagNodeFromRawBytes(raw_block)
-	if err != nil {
-		return nil, err
-	}
-
-	util.LogPrintf("Successfully fetched root node for strand %d", strand)
-
-	// TODO: Optimize find the ith leaf!
-	// by caching what has been seen so far!
-	leaf_curr_count := 0
-	var find_ith_leaf func(node *dag.ProtoNode, idx int) (*dag.ProtoNode, error)
-	find_ith_leaf = func(node *dag.ProtoNode, idx int) (*dag.ProtoNode, error) {
-		if len(node.Links()) == 0 {
-			leaf_curr_count++
-			if leaf_curr_count == idx {
-				return node, nil
-			}
-			return nil, nil
-		}
-
-		for _, link := range node.Links() {
-			raw_child, err := getter.GetRawBlock(link.Cid.String())
-
-			if err != nil {
-				return nil, err
-			}
-
-			dag_child, err := getter.GetDagNodeFromRawBytes(raw_child)
-			if err != nil {
-				return nil, err
-			}
-
-			leaf, err := find_ith_leaf(dag_child, idx)
-			if err != nil {
-				return nil, err
-			}
-			if leaf != nil {
-				return leaf, nil
-			}
-		}
-
-		return nil, nil
-	}
+	// find the node in ParityIndexMap
+	// get the path to the node
 
 	final_data := make([]byte, 0)
+	// TODO: make these variables global and initialize them once!
 	blocks := calculateNewBlocks(262158, 262144, index)
 
 	for _, block := range blocks {
-		leaf_curr_count = 0
-		current_leaf, err := find_ith_leaf(dag_node, block[0]+1)
-		if err != nil {
-			return nil, err
-		}
-		if current_leaf == nil {
+		targetNode, ok := getter.ParityIndexMap[strand][block[0]]
+		if !ok {
 			return nil, xerrors.Errorf("no parity exists")
 		}
-
-		current_data, err := getter.GetFileDataFromDagNode(current_leaf)
+		currentData, err := getter.GetParityHelper(targetNode)
 
 		if err != nil {
 			return nil, err
 		}
 
-		final_data = append(final_data, current_data[block[1]:block[2]]...)
+		final_data = append(final_data, currentData[block[1]:block[2]]...)
 	}
 
-	//create new array that has the elements 1,2,3,4,5
-
-	// util.LogPrintf("Finding the %dth leaf for strand %d", index, strand)
-
-	// // Find the first part of the parity
-	// leaf1, err := find_ith_leaf(dag_node, index*2+1)
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if leaf1 == nil {
-	// 	return nil, xerrors.Errorf("no parity exists")
-	// }
-
-	// data1, err := getter.GetFileDataFromDagNode(leaf1)
-	// // data1 := leaf1.Data()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // Find the second part of the parity
-	// leaf_curr_count = 0
-	// leaf2, err := find_ith_leaf(dag_node, (index*2 + 2))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if leaf2 == nil {
-	// 	return nil, xerrors.Errorf("no parity exists")
-	// }
-
-	// data2, err := getter.GetFileDataFromDagNode(leaf2)
-	// // data2 := leaf2.Data()
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// util.LogPrintf("Successfully fetched parity for index %d and strand %d", index, strand)
-
-	// // Merge the two parts of the parity
-	// data := append(data1, data2...)
-
-	// // get only the first 262158 bytes of the data
-	// data = data[:262158]
-
-	// get the data directly through the map
-	/* Get the target CID of the block */
-	cid := getter.Parity[strand][index]
-	data_copy, err := getter.GetFileToMem(cid)
-
-	// compare the two data
-	minLength := len(final_data)
-	if len(data_copy) < minLength {
-		minLength = len(data_copy)
-	}
-
-	mismatch := 0
-	for i := 0; i < minLength; i++ {
-		if final_data[i] != data_copy[i] {
-			mismatch += 1
-		}
-	}
-
-	if mismatch > 0 {
-		return nil, xerrors.Errorf("parity mismatch of size %d", mismatch)
-	}
-
-	if len(final_data) != len(data_copy) {
-		return nil, xerrors.Errorf("parity length mismatch")
-	}
-
-	return final_data, err
+	return final_data, nil
 }

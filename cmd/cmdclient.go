@@ -21,6 +21,8 @@ type Metadata struct {
 	Leaves          int // L
 	Depth           int // D
 
+	MaxParityChildren int // K Parity
+
 	RootCID string
 
 	DataCIDIndexMap map[string]int

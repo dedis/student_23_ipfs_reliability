@@ -5,8 +5,16 @@ import (
 	"fmt"
 )
 
+type ParityTreeNode struct {
+	Data     []byte
+	Children []*ParityTreeNode
+	Parent   *ParityTreeNode
+	Index    int
+	CID      string
+}
+
 type EmptyTreeNode struct {
-	data        []byte
+	Data        []byte
 	Children    []*EmptyTreeNode
 	Parent      *EmptyTreeNode
 	Depth       int
@@ -281,46 +289,6 @@ func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*
 
 	root := nodes[0]
 
-	// // Helper function to create a new node with specific depth
-	// createNode := func(depth int) *EmptyTreeNode {
-	// 	return &EmptyTreeNode{
-	// 		Depth: depth,
-	// 	}
-	// }
-
-	// // Create leaves
-	// var leaves []*EmptyTreeNode
-	// for i := 0; i < L; i++ {
-	// 	leaves = append(leaves, createNode(D))
-	// }
-
-	// nodes := leaves
-
-	// // TODO: Make sure the logic is correct
-	// // Construct tree from bottom up
-	// for depth := D; depth > 1; depth-- {
-	// 	var newNodes []*EmptyTreeNode
-	// 	for len(nodes) > K {
-	// 		children := nodes[:K]
-	// 		nodes = nodes[K:]
-
-	// 		node := createNode(depth - 1)
-	// 		node.Children = children
-	// 		for _, child := range children {
-	// 			child.Parent = node
-	// 		}
-	// 		newNodes = append(newNodes, node)
-	// 	}
-	// 	newNodes = append(newNodes, nodes...)
-	// 	nodes = newNodes
-	// }
-
-	// root := createNode(1)
-	// root.Children = nodes
-	// for _, node := range nodes {
-	// 	node.Parent = root
-	// }
-
 	// Assign pre-order indexes top-down
 	assignPreOrderIndex(root)
 
@@ -331,4 +299,48 @@ func ConstructTree(L, K, D, N, s, p int) (*EmptyTreeNode, map[int]int, map[int]*
 	map_nodes(root)
 
 	return root, child_parent, index_map, nil
+}
+
+func CreateParityTree(L, K int) (*ParityTreeNode, map[int]*ParityTreeNode) {
+	// Create L leaves
+	leaves := make([]*ParityTreeNode, L)
+	for i := range leaves {
+		leaves[i] = &ParityTreeNode{Index: i}
+	}
+
+	// Map for leaf indices to nodes
+	leafMap := make(map[int]*ParityTreeNode)
+	for _, leaf := range leaves {
+		leafMap[leaf.Index] = leaf
+	}
+
+	// Initialize the current level with leaves
+	currentLevel := leaves
+	nextParentIndex := L
+
+	for len(currentLevel) > 1 {
+		var newLevel []*ParityTreeNode
+		var tempNodes []*ParityTreeNode
+
+		// Group nodes to assign them to new parents
+		for _, node := range currentLevel {
+			tempNodes = append(tempNodes, node)
+			if len(tempNodes) == K || (node == currentLevel[len(currentLevel)-1] && len(tempNodes) > 0) {
+				parent := &ParityTreeNode{Index: nextParentIndex}
+				nextParentIndex++
+				parent.Children = tempNodes
+				for _, child := range tempNodes {
+					child.Parent = parent
+				}
+				newLevel = append(newLevel, parent)
+				tempNodes = []*ParityTreeNode{}
+			}
+		}
+		currentLevel = newLevel
+	}
+
+	// The root of the tree is the last node created
+	root := currentLevel[0]
+
+	return root, leafMap
 }

@@ -45,7 +45,7 @@ var InfoMap = map[string]FileInfo{
 	},
 	"25MB": {
 		FileCID:    "QmNkkcM5tFMqWxdrekyZoJnF5QxWKZnqYdJFBUj1jssRhb",
-		MetaCID:    "QmdXscp5UuVX6GjcihTeYsbnyUrfpoC3cGBB6bJtUfKgMT",
+		MetaCID:    "QmbBjMDhaqyBejPwA62Z17RZzRwNNoMYtPEY6GQeu5dWX1",
 		TotalBlock: 101,
 	},
 	"50MB": {

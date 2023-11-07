@@ -73,7 +73,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 	}
 
 	/* pin files in cluster */
-	treeCids, err := c.pinAlphaEntanglements(alpha, parityBlocks)
+	treeCids, maxParityChildren, err := c.pinAlphaEntanglements(alpha, parityBlocks)
 	if err != nil {
 		return rootCID, "", nil, err
 	}
@@ -98,6 +98,8 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 		MaxChildren:     maxChildren, // K
 		Leaves:          leaves,      // L
 		Depth:           maxDepth,    // D
+
+		MaxParityChildren: maxParityChildren,
 	}
 	rawMetadata, err := json.Marshal(metaData)
 	if err != nil {
@@ -189,7 +191,7 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 	return parityCIDs, parityBlocks, nil
 }
 
-func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]string, error) {
+func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]string, int, error) {
 	// for each strand, merge all bytes into one byte array
 	// then upload the whole file to IPFS
 	// retreieve the merkle tree of each file
@@ -200,6 +202,7 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 	// we will define each block so that it would be exactly 2 * 256 KB (which is the maximum for each block in IPFS)
 	// targetSize := 2 * 262144
 
+	currentMaxChildren := 0
 	parityCIDs := make([]string, alpha)
 	for k := 0; k < alpha; k++ {
 		// merge all bytes into one byte array
@@ -217,29 +220,33 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		// upload file to IPFS network
 		blockCID, err := c.AddFileFromMem(mergedParity)
 		if err != nil {
-			return nil, xerrors.Errorf("could not upload parity %d: %s", k, err)
+			return nil, 0, xerrors.Errorf("could not upload parity %d: %s", k, err)
 		}
 
 		util.LogPrintf("Finish uploading entanglement %d with root cid %s", k, blockCID)
 
 		// pin the whole file block by block
-		err = c.pinEntanglementTree(blockCID)
+		tmpMaxChildren, err := c.pinEntanglementTree(blockCID)
 		if err != nil {
-			return nil, xerrors.Errorf("could not pin parity %d: %s", k, err)
+			return nil, 0, xerrors.Errorf("could not pin parity %d: %s", k, err)
 		}
 
+		if tmpMaxChildren > currentMaxChildren {
+			currentMaxChildren = tmpMaxChildren
+		}
 		util.LogPrintf("Finish uploading entanglement %d with root cid %s", k, blockCID)
 		parityCIDs[k] = blockCID
 	}
 
-	return parityCIDs, nil
+	return parityCIDs, currentMaxChildren, nil
 }
 
-func (c *Client) pinEntanglementTree(entaglementCID string) error {
+func (c *Client) pinEntanglementTree(entaglementCID string) (int, error) {
 	// get the merkle tree from IPFS
+	currentMaxChildren := 0
 	tree, _, _, err := c.GetMerkleTree(entaglementCID, nil)
 	if err != nil {
-		return xerrors.Errorf("could not get merkle tree: %s", err)
+		return 0, xerrors.Errorf("could not get merkle tree: %s", err)
 	}
 	// Strand 0 , parity 0
 	//Qma3dPFfrYjS8yGbyMZCrrRNDq6oFKhykmqEnuSnAvhp85
@@ -257,6 +264,9 @@ func (c *Client) pinEntanglementTree(entaglementCID string) error {
 			log.Printf("could not pin node %s: %s", parent.CID, err)
 			return
 		}
+		if len(parent.Children) > currentMaxChildren {
+			currentMaxChildren = len(parent.Children)
+		}
 		if len(parent.Children) > 0 {
 			for _, child := range parent.Children {
 				walker(child)
@@ -266,7 +276,7 @@ func (c *Client) pinEntanglementTree(entaglementCID string) error {
 
 	walker(tree)
 
-	return nil
+	return currentMaxChildren, nil
 }
 
 // pinMetadataAndParities pins the metadata and parities in IPFS cluster in the non-blocking way
