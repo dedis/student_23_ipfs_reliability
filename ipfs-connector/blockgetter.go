@@ -23,8 +23,9 @@ type IPFSGetter struct {
 	ParentMap       map[int]int            // maps lattice index of child to lattice index of parent
 	NodeMap         map[int]*EmptyTreeNode // maps lattice index of a certain block to its tree node
 
-	ParityTrees    []*ParityTreeNode
-	ParityIndexMap []map[int]*ParityTreeNode
+	ParityTrees     []*ParityTreeNode
+	ParityIndexMap  []map[int]*ParityTreeNode
+	ParityAvailable []bool
 }
 
 // TODO:
@@ -45,6 +46,10 @@ type IPFSGetter struct {
 func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, parityCIDs [][]string, fileCid string, treeCids []string, numBlocks int, emptyTree *EmptyTreeNode, parentMap map[int]int, nodeMap map[int]*EmptyTreeNode, parityTrees []*ParityTreeNode, parityIndexMap []map[int]*ParityTreeNode) *IPFSGetter {
 	indexToDataCIDMap := *util.NewSafeMap()
 	indexToDataCIDMap.AddReverseMap(CIDIndexMap)
+	parityAvails := make([]bool, len(parityTrees))
+	for i := range parityAvails {
+		parityAvails[i] = (parityTrees[i].CID != "")
+	}
 	return &IPFSGetter{
 		IPFSConnector:   connector,
 		DataIndexCIDMap: indexToDataCIDMap,
@@ -59,8 +64,9 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 		ParentMap:       parentMap,
 		NodeMap:         nodeMap,
 
-		ParityTrees:    parityTrees,
-		ParityIndexMap: parityIndexMap,
+		ParityTrees:     parityTrees,
+		ParityIndexMap:  parityIndexMap,
+		ParityAvailable: parityAvails,
 	}
 }
 
@@ -224,7 +230,7 @@ func calculateNewBlocks(originalBlockSize, newBlockSize, originalIndex int) [][3
 	return result
 }
 
-func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode) ([]byte, error) {
+func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode, strand int) ([]byte, error) {
 
 	if currentNode == nil {
 		return nil, xerrors.Errorf("parity doesn't exist")
@@ -272,9 +278,14 @@ func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode) ([]byte, 
 			return nil, xerrors.Errorf("parity doesn't have a parent")
 		}
 
-		_, err := getter.GetParityHelper(currentNode.Parent)
+		_, err := getter.GetParityHelper(currentNode.Parent, strand)
 
 		if err != nil {
+			// we only set this to false if a non leaf node can't be found
+			// this internal node has no way of being repaired since its not entangled
+			// we'll have to make this whole strand unavailable and send a request to
+			// the daemon to regenerate and upload the whole strand again
+			getter.ParityAvailable[strand] = false
 			return nil, err
 		}
 	}
@@ -285,6 +296,10 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	// find the node in ParityIndexMap
 	// get the path to the node
 
+	if !getter.ParityAvailable[strand] {
+		return nil, xerrors.Errorf("parity tree is missing")
+	}
+
 	final_data := make([]byte, 0)
 	// TODO: make these variables global and initialize them once!
 	blocks := calculateNewBlocks(262158, 262144, index)
@@ -294,7 +309,7 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 		if !ok {
 			return nil, xerrors.Errorf("no parity exists")
 		}
-		currentData, err := getter.GetParityHelper(targetNode)
+		currentData, err := getter.GetParityHelper(targetNode, strand)
 
 		if err != nil {
 			return nil, err

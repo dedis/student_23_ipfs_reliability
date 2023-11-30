@@ -133,7 +133,6 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 
 	/* create lattice */
 	// create getter
-	chunkNum := len(metaData.DataCIDIndexMap)
 	getter := ipfsconnector.CreateIPFSGetter(c.IPFSConnector, metaData.DataCIDIndexMap, metaData.ParityCIDs, metaData.OriginalFileCID, metaData.TreeCIDs, metaData.NumBlocks, merkleTree, child_parent_index_map, index_node_map, parityTrees, parityIndexMap)
 	if len(option.DataFilter) > 0 {
 		getter.DataFilter = make(map[int]struct{}, len(option.DataFilter))
@@ -143,7 +142,7 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	}
 
 	// create lattice
-	lattice := entangler.NewLattice(metaData.Alpha, metaData.S, metaData.P, chunkNum, getter, 2)
+	lattice := entangler.NewLattice(metaData.Alpha, metaData.S, metaData.P, metaData.NumBlocks, getter, 2)
 	lattice.Init()
 
 	/* download & recover file from IPFS */

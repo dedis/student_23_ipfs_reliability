@@ -125,7 +125,7 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 	parityChan := make(chan entangler.EntangledBlock, alpha*blockNum)
 
 	// start the entangler to read from pipline
-	tangler := entangler.NewEntangler(alpha, s, p)
+	tangler := entangler.NewEntangler(alpha, s, p, []bool{})
 	go func() {
 		err := tangler.Entangle(dataChan, parityChan)
 		if err != nil {
@@ -209,7 +209,7 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		var mergedParity []byte
 		util.LogPrintf("Merging entanglement %d", k)
 		for _, block := range parityBlocks[k] {
-			util.LogPrintf("Parity blok size: %d", len(block))
+			util.LogPrintf("Parity block size: %d", len(block))
 			// padding := make([]byte, targetSize-len(block))
 			mergedParity = append(mergedParity, block...)
 			// mergedParity = append(mergedParity, padding...)

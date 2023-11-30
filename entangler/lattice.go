@@ -30,7 +30,7 @@ type Lattice struct {
 
 // NewLattice creates a new lattice for block downloading and recovering
 func NewLattice(alpha int, s int, p int, blockNum int, blockGetter BlockGetter, switchDepth uint) (lattice *Lattice) {
-	var tangler = *NewEntangler(alpha, s, p)
+	var tangler = *NewEntangler(alpha, s, p, []bool{})
 	tangler.ChunkNum = blockNum
 	lattice = &Lattice{
 		Mutex:        &sync.Mutex{},
@@ -75,6 +75,14 @@ func (l *Lattice) UpdateParity(index int, strand int, data []byte) {
 // GetChunk returns a data chunk in the indexed block
 func (l *Lattice) GetChunk(index int) (data []byte, repaired bool, err error) {
 	block := l.getBlock(index)
+	data, err = l.getDataFromBlock(block, l.SwitchDepth)
+	repaired = block.IsRepaired()
+
+	return data, repaired, err
+}
+
+func (l *Lattice) GetParity(index int, strand int) (data []byte, repaired bool, err error) {
+	block := l.ParityBlocks[strand][index-1]
 	data, err = l.getDataFromBlock(block, l.SwitchDepth)
 	repaired = block.IsRepaired()
 

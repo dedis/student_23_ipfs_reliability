@@ -53,10 +53,14 @@ type Entangler struct {
 	// cached data. reset for each entanglement
 	cachedParities     [][]*EntangledBlock
 	parityBlocksToWrap [][]*EntangledBlock
+
+	// Strands to generate
+	// For each index, specifies whether the strand should be generated
+	Strands []bool
 }
 
 // NewEntangler takes the entanglement paramters and the original data slice and creates an entangler
-func NewEntangler(alpha int, s int, p int) (entangler *Entangler) {
+func NewEntangler(alpha int, s int, p int, strands []bool) (entangler *Entangler) {
 	// value check. See details in alpha-entanglement-code paper (https://ieeexplore.ieee.org/document/8416482)
 	if alpha < 1 {
 		util.ThrowError("invalid value. Expect alpha > 0")
@@ -75,6 +79,14 @@ func NewEntangler(alpha int, s int, p int) (entangler *Entangler) {
 		entangler.MaxChainNumPerStrand = p
 	}
 
+	if len(strands) == 0 {
+		for i := 0; i < alpha; i++ {
+			entangler.Strands = append(entangler.Strands, true)
+		}
+	} else {
+		entangler.Strands = strands
+	}
+
 	return entangler
 }
 
@@ -87,14 +99,23 @@ func (e *Entangler) WriteEntanglementToFile(chunkSize int, path []string, parity
 
 	parities := make([][][]byte, e.Alpha)
 	for k := 0; k < e.Alpha; k++ {
+		if !e.Strands[k] {
+			continue
+		}
 		parities[k] = make([][]byte, e.ChunkNum)
 	}
 	for parity := range parityChan {
 		util.InfoPrintf(util.Yellow("Strand %d: (%d, %d)\n"), parity.Strand, parity.LeftBlockIndex, parity.RightBlockIndex)
+		if !e.Strands[parity.Strand] {
+			continue
+		}
 		parities[parity.Strand][parity.LeftBlockIndex-1] = parity.Data
 	}
 
 	for k := 0; k < e.Alpha; k++ {
+		if !e.Strands[k] {
+			continue
+		}
 		// generate byte array of the current strand
 		entangledData := make([]byte, 0)
 		for _, parityData := range parities[k] {
@@ -149,17 +170,28 @@ func (e *Entangler) Entangle(dataChan chan []byte, parityChan chan EntangledBloc
 func (e *Entangler) prepareEntangle() {
 	e.parityBlocksToWrap = make([][]*EntangledBlock, e.Alpha)
 	for k := 0; k < e.Alpha; k++ {
+		if !e.Strands[k] {
+			continue
+		}
 		e.parityBlocksToWrap[k] = make([]*EntangledBlock, e.MaxChainNumPerStrand)
 	}
 
 	e.ChainStartData = make([][]byte, e.MaxChainNumPerStrand)
 
 	e.cachedParities = make([][]*EntangledBlock, e.Alpha)
-	e.cachedParities[0] = make([]*EntangledBlock, e.S)
-	for i := 0; i < e.S; i++ {
-		e.cachedParities[0][i] = NewEntangledBlock(0, 0, make([]byte, 0), 0)
+
+	if e.Strands[0] {
+		e.cachedParities[0] = make([]*EntangledBlock, e.S)
+		for i := 0; i < e.S; i++ {
+			e.cachedParities[0][i] = NewEntangledBlock(0, 0, make([]byte, 0), 0)
+		}
 	}
+
 	for k := 1; k < e.Alpha; k++ {
+		if !e.Strands[k] {
+			continue
+		}
+
 		e.cachedParities[k] = make([]*EntangledBlock, e.P)
 		for i := 0; i < e.P; i++ {
 			e.cachedParities[k][i] = NewEntangledBlock(0, 0, make([]byte, 0), k)
@@ -175,6 +207,10 @@ func (e *Entangler) entangleSingleBlock(index int, data []byte, parityChan chan 
 	rIndexes := e.getForwardNeighborIndexes(index)
 
 	for k := 0; k < e.Alpha; k++ {
+		if !e.Strands[k] {
+			continue
+		}
+
 		// read parity block from cache
 		prevBlock := e.cachedParities[k][cachePos[k]]
 		// generate new parity block
@@ -193,6 +229,9 @@ func (e *Entangler) entangleSingleBlock(index int, data []byte, parityChan chan 
 // wrapLattice wraps the lattice by modify the first parities on each strand
 func (e *Entangler) wrapLattice(parityChan chan EntangledBlock) {
 	for k, cacheParity := range e.cachedParities {
+		if !e.Strands[k] {
+			continue
+		}
 		for _, parityNode := range cacheParity {
 			// Link the last parity block to the first data block of the chain
 			index := e.getChainStartIndexes(parityNode.RightBlockIndex)[k]
