@@ -4,5 +4,5 @@ import "ipfs-alpha-entanglement-code/Server"
 
 func community_node_start() {
 	server := &Server.Server{}
-	server.RunServer()
+	server.RunServer(":8080")
 }
