@@ -2,40 +2,30 @@ package Server
 
 import (
 	"github.com/gin-gonic/gin"
+	"strings"
 )
-
-type State struct {
-	// TODO: Add state
-}
-
-type Operation struct {
-	// TODO: Define
-}
-
-type Server struct {
-	ginEngine  *gin.Engine
-	state      State
-	operations chan Operation
-	ctx        chan struct{}
-}
 
 func (s *Server) setUpServer() {
 	s.ginEngine = gin.Default()
 	// TODO: Config port and other network settings
 
-	s.ginEngine.POST("/startMonitor", func(c *gin.Context) { startMonitor(s, c) })
-	s.ginEngine.POST("/stopMonitor", func(c *gin.Context) { stopMonitor(s, c) })
+	s.ginEngine.POST("/startMonitorFile", func(c *gin.Context) { startMonitorFile(s, c) })
+	s.ginEngine.POST("/stopMonitorFile", func(c *gin.Context) { stopMonitorFile(s, c) })
 	s.ginEngine.GET("/listMonitor", func(c *gin.Context) { listMonitor(s, c) })
 	s.ginEngine.GET("/checkFileStatus", func(c *gin.Context) { checkFileStatus(s, c) })
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
 	s.ginEngine.POST("/notifyFailure", func(c *gin.Context) { notifyFailure(s, c) })
 
 	// TODO: Init State
+
+	s.ctx = make(chan struct{})
+	s.operations = make(chan Operation)
+	s.state = State{files: make(map[string]FileStats)}
 }
 
 // RunServer
-// * @Description: Run the server (blocking)
-// * @param port: The port to listen on
+// @Description: Run the server (blocking)
+// @param port: The port to listen on
 func (s *Server) RunServer(port string) int {
 	s.setUpServer()
 
@@ -52,26 +42,69 @@ func (s *Server) RunServer(port string) int {
 	return 0
 }
 
-func startMonitor(s *Server, c *gin.Context) {
-	// TODO implement
+// startMonitorFile
+// Query parameters in context: dataRoot (CID), strandParityRoot (CID)
+func startMonitorFile(s *Server, c *gin.Context) {
+	dataRoot := c.Query("dataRoot")
+	strandParityRoot := c.Query("strandParityRoot")
+
+	if dataRoot == "" || strandParityRoot == "" {
+		c.JSON(400, gin.H{"message": "Missing CID parameters"})
+		return
+	}
+
+	params := []string{dataRoot, strandParityRoot}
+
+	s.operations <- Operation{START_MONITOR_FILE, strings.Join(params, ",")}
+
+	c.JSON(200, gin.H{"message": "Start op."})
 }
 
-func stopMonitor(s *Server, c *gin.Context) {
-	// TODO implement
+// stopMonitorFile
+// Query parameters in context: dataRoot (CID)
+func stopMonitorFile(s *Server, c *gin.Context) {
+	dataRoot := c.Query("dataRoot")
+
+	if dataRoot == "" {
+		c.JSON(400, gin.H{"message": "Missing CID parameter"})
+		return
+	}
+
+	s.operations <- Operation{START_MONITOR_FILE, dataRoot}
+
+	c.JSON(200, gin.H{"message": "Stop op."})
 }
 
 func listMonitor(s *Server, c *gin.Context) {
-	// TODO implement
+	s.stateMux.Lock()
+	defer s.stateMux.Unlock()
+
+	// gather CIDs of files being monitored
+	cids := ""
+
+	if len(s.state.files) == 0 {
+		c.JSON(200, gin.H{"message": "No monitored CIDs"})
+		return
+	}
+
+	for file, stats := range s.state.files {
+		cids += "CID=" + file + "-[Health = " + stats.Health() + "], "
+	}
+
+	c.JSON(200, gin.H{"message": "Listing monitored CIDs", "CIDs": cids[:len(cids)-2]})
 }
 
 func checkFileStatus(s *Server, c *gin.Context) {
 	// TODO implement
+	c.JSON(503, gin.H{"message": "Not Yet implemented"})
 }
 
 func checkClusterStatus(s *Server, c *gin.Context) {
 	// TODO implement
+	c.JSON(503, gin.H{"message": "Not Yet implemented"})
 }
 
 func notifyFailure(s *Server, c *gin.Context) {
 	// TODO implement
+	c.JSON(503, gin.H{"message": "Not Yet implemented"})
 }
