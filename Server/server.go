@@ -1,7 +1,10 @@
 package Server
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	shell "github.com/ipfs/go-ipfs-api"
+	"strconv"
 	"strings"
 )
 
@@ -21,19 +24,20 @@ func (s *Server) setUpServer() {
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]FileStats)}
+	s.sh = shell.NewLocalShell() // FIXME need to call NewShell?
 }
 
 // RunServer
 // @Description: Run the server (blocking)
 // @param port: The port to listen on
-func (s *Server) RunServer(port string) int {
+func (s *Server) RunServer(port int) int {
 	s.setUpServer()
 
 	// Starting daemon
 	go Daemon(s)
 	defer close(s.ctx)
 
-	err := s.ginEngine.Run(port) // blocking
+	err := s.ginEngine.Run(fmt.Sprintf(":%d", port)) // blocking
 	// listen and serve on 0.0.0.0 + port
 	if err != nil {
 		return 1
@@ -43,17 +47,18 @@ func (s *Server) RunServer(port string) int {
 }
 
 // startMonitorFile
-// Query parameters in context: dataRoot (CID), strandParityRoot (CID)
+// Query parameters in context: dataRoot (CID-string), strandParityRoot (CID-string), numBlocks (int)
 func startMonitorFile(s *Server, c *gin.Context) {
 	dataRoot := c.Query("dataRoot")
 	strandParityRoot := c.Query("strandParityRoot")
+	numBlocks := c.Query("numBlocks")
 
-	if dataRoot == "" || strandParityRoot == "" {
+	if dataRoot == "" || strandParityRoot == "" || numBlocks == "" {
 		c.JSON(400, gin.H{"message": "Missing CID parameters"})
 		return
 	}
 
-	params := []string{dataRoot, strandParityRoot}
+	params := []string{dataRoot, strandParityRoot, numBlocks}
 
 	s.operations <- Operation{START_MONITOR_FILE, strings.Join(params, ",")}
 
@@ -88,7 +93,8 @@ func listMonitor(s *Server, c *gin.Context) {
 	}
 
 	for file, stats := range s.state.files {
-		cids += "CID=" + file + "-[Health = " + stats.Health() + "], "
+		cids += "CID=" + file + "-[Health = " +
+			strconv.FormatFloat(float64(stats.Health()), 'f', -1, 64) + "%], "
 	}
 
 	c.JSON(200, gin.H{"message": "Listing monitored CIDs", "CIDs": cids[:len(cids)-2]})

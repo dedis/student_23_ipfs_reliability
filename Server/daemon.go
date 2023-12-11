@@ -1,12 +1,13 @@
 package Server
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
 
 func Daemon(s *Server) {
-	timer := time.NewTicker(30 * time.Second) // FIXME goto timer if ops take some time to be processed
+	timer := time.NewTimer(30 * time.Second)
 
 	for {
 		select {
@@ -17,15 +18,22 @@ func Daemon(s *Server) {
 			switch {
 			case op.operationType == START_MONITOR_FILE:
 				res := strings.Split(op.parameter, ",")
-				if len(res) != 2 {
+				if len(res) != 3 {
 					println("Incorrect number of parameters for START_MONITOR_FILE")
 					break
 				}
 				dataCID := res[0]
 				strandCID := res[1]
+				numBlocks, err := strconv.Atoi(res[2])
+				if err != nil {
+					println("Number of blocks not an int in START_MONITOR_FILE")
+					break
+				}
 
 				s.stateMux.Lock()
-				s.state.files[dataCID] = FileStats{strandCID}
+				s.state.files[dataCID] = FileStats{strandCID, numBlocks,
+					make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
+					0.1, 1.0}
 				s.stateMux.Unlock()
 
 			case op.operationType == STOP_MONITOR_FILE:
@@ -50,10 +58,13 @@ func Daemon(s *Server) {
 			// TODO: Check a block for each file
 			for file, stats := range s.state.files {
 				println("Checking file", file, "with strand", stats.strandCID, "... (TODO)\n")
+				s.InspectFile(file, &stats)
 			}
 
-			// TODO: Check Cluster health?
+			// TODO: Check Cluster health? health metrics (ping)
 			s.stateMux.Unlock()
+
+			timer.Reset(30 * time.Second)
 		}
 	}
 }
