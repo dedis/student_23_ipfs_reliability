@@ -2,10 +2,12 @@ package Server
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	shell "github.com/ipfs/go-ipfs-api"
+	"ipfs-alpha-entanglement-code/client"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	shell "github.com/ipfs/go-ipfs-api"
 )
 
 func (s *Server) setUpServer() {
@@ -19,12 +21,15 @@ func (s *Server) setUpServer() {
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
 	s.ginEngine.POST("/notifyFailure", func(c *gin.Context) { notifyFailure(s, c) })
 
+	s.ginEngine.GET("/downloadFile", func(c *gin.Context) { downloadFile(s, c) })
+
 	// TODO: Init State
 
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]FileStats)}
 	s.sh = shell.NewLocalShell() // FIXME need to call NewShell?
+	s.client = &client.Client{}
 }
 
 // RunServer
@@ -113,4 +118,25 @@ func checkClusterStatus(s *Server, c *gin.Context) {
 func notifyFailure(s *Server, c *gin.Context) {
 	// TODO implement
 	c.JSON(503, gin.H{"message": "Not Yet implemented"})
+}
+
+// Query parameters in context: rootFileCID (CID-string), metadataCID (CID-string), path (string), uploadRecoverData (bool)
+func downloadFile(s *Server, c *gin.Context) {
+	rootFileCID := c.Query("rootFileCID")
+	metadataCID := c.Query("metadataCID")
+	path := c.Query("path")
+	uploadRecoverData := c.Query("uploadRecoverData")
+
+	options := client.DownloadOption{
+		UploadRecoverData: uploadRecoverData == "true",
+		MetaCID:           metadataCID,
+	}
+
+	out, err := s.client.Download(rootFileCID, path, options)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Download failed", "error": err.Error()})
+		return
+	} else {
+		c.JSON(200, gin.H{"message": "Downloaded", "out": out})
+	}
 }

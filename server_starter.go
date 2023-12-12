@@ -2,7 +2,7 @@ package main
 
 import "ipfs-alpha-entanglement-code/Server"
 
-func community_node_start() {
+func community_node_start(port int) {
 	server := &Server.Server{}
-	server.RunServer(8080)
+	server.RunServer(port)
 }

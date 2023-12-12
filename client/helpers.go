@@ -1,11 +1,10 @@
-package cmd
+package client
 
 import (
 	"encoding/json"
 	ipfscluster "ipfs-alpha-entanglement-code/ipfs-cluster"
 	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 
-	"github.com/spf13/cobra"
 	"golang.org/x/xerrors"
 )
 
@@ -32,15 +31,6 @@ type Metadata struct {
 type Client struct {
 	*ipfsconnector.IPFSConnector
 	IPFSClusterConnector *ipfscluster.Connector
-	*cobra.Command
-}
-
-// NewClient creates a new client for futhur use
-func NewClient() (client *Client, err error) {
-	client = &Client{}
-	client.initCmd()
-
-	return client, nil
 }
 
 // init ipfs connector for future usage

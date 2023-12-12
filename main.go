@@ -8,7 +8,7 @@ func main() {
 	// util.Enable_LogPrint()
 	// util.Enable_InfoPrint()
 
-	client, err := cmd.NewClient()
+	client, err := cmd.NewCommand()
 	if err != nil {
 		panic(err)
 	}

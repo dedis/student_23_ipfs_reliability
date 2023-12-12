@@ -1,9 +1,11 @@
 package Server
 
 import (
+	"ipfs-alpha-entanglement-code/client"
+	"sync"
+
 	"github.com/gin-gonic/gin"
 	shell "github.com/ipfs/go-ipfs-api"
-	"sync"
 )
 
 type State struct {
@@ -53,4 +55,5 @@ type Server struct {
 	stateMux   sync.Mutex
 	operations chan Operation
 	ctx        chan struct{}
+	client     *client.Client
 }

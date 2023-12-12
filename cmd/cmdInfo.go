@@ -1,18 +1,41 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"ipfs-alpha-entanglement-code/Server"
+	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/performance"
 	"ipfs-alpha-entanglement-code/util"
 	"log"
 	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 )
 
+type Command struct {
+	*cobra.Command
+	*client.Client
+	*Server.Server
+}
+
+// NewClient creates a new client for futhur use
+func NewCommand() (command *Command, err error) {
+	command = &Command{}
+	command.initCmd()
+	command.Client = &client.Client{}
+	command.Server = &Server.Server{}
+
+	return command, nil
+}
+
 // initCmd inits cmd for user interaction
-func (c *Client) initCmd() {
+func (c *Command) initCmd() {
 	c.Command = &cobra.Command{
 		Use: "entangler",
 	}
@@ -20,10 +43,30 @@ func (c *Client) initCmd() {
 	c.AddUploadCmd()
 	c.AddDownloadCmd()
 	c.AddPerformanceCmd()
+	c.AddDaemonCmd()
+}
+
+func (c *Command) AddDaemonCmd() {
+	var port int
+	daemonCmd := &cobra.Command{
+		Use:   "daemon",
+		Short: "Start the community node",
+		Long:  "Start the community node",
+		Args:  cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			util.EnableLogPrint()
+			util.EnableInfoPrint()
+
+			c.RunServer(port)
+		},
+	}
+	daemonCmd.Flags().IntVarP(&port, "port", "p", 7070, "Set the port for corresponding community node")
+
+	c.AddCommand(daemonCmd)
 }
 
 // AddUploadCmd enables upload functionality
-func (c *Client) AddUploadCmd() {
+func (c *Command) AddUploadCmd() {
 	var alpha, s, p int
 	uploadCmd := &cobra.Command{
 		Use:   "upload [path]",
@@ -61,10 +104,67 @@ func (c *Client) AddUploadCmd() {
 	c.AddCommand(uploadCmd)
 }
 
+// Define structures to represent the JSON response
+type SuccessResponse struct {
+	Message string `json:"message"`
+	Out     string `json:"out"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Error   string `json:"error"`
+}
+
+func (c *Command) downloadFile(port, rootFileCID, metadataCID, path string, uploadRecoverData bool) (string, error) {
+	baseURL := fmt.Sprintf("http://0.0.0.0:%s/downloadFile", port)
+
+	// Build the query parameters
+	params := url.Values{}
+	params.Add("rootFileCID", rootFileCID)
+	params.Add("metadataCID", metadataCID)
+	params.Add("path", path)
+	params.Add("uploadRecoverData", fmt.Sprintf("%v", uploadRecoverData))
+
+	// Construct the final URL with query parameters
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	// Send the GET request
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return "", fmt.Errorf("error making request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %v", err)
+	}
+
+	// Handle the response based on the status code
+	switch resp.StatusCode {
+	case 200:
+		var successResp SuccessResponse
+		if err := json.Unmarshal(body, &successResp); err != nil {
+			return "", fmt.Errorf("error decoding success response: %v", err)
+		}
+		return successResp.Out, nil
+	case 400:
+		var errorResp ErrorResponse
+		if err := json.Unmarshal(body, &errorResp); err != nil {
+			return "", fmt.Errorf("error decoding error response: %v", err)
+		}
+		return "", fmt.Errorf("error response: %s", errorResp.Error)
+	default:
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+}
+
 // AddDownloadCmd enables download functionality
-func (c *Client) AddDownloadCmd() {
-	var opt DownloadOption
+func (c *Command) AddDownloadCmd() {
+	var opt client.DownloadOption
 	var path string
+	var port string
 	downloadCmd := &cobra.Command{
 		Use:   "download [cid] [path]",
 		Short: "Download a file from IPFS",
@@ -73,7 +173,8 @@ func (c *Client) AddDownloadCmd() {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.EnableLogPrint()
 
-			out, err := c.Download(args[0], path, opt)
+			// send get request to 0.0.0.0:port/downloadFile
+			out, err := c.downloadFile(port, args[0], opt.MetaCID, path, opt.UploadRecoverData)
 			if err != nil {
 				log.Println("Error:", err)
 				os.Exit(1)
@@ -85,6 +186,8 @@ func (c *Client) AddDownloadCmd() {
 		"Provide output path to store the downloaded stuff")
 	downloadCmd.Flags().StringVarP(&opt.MetaCID, "metacid", "m",
 		"", "Provide metafile cid for recovery")
+	downloadCmd.Flags().StringVarP(&port, "port", "p", "7070", "Set the port for corresponding community node")
+
 	downloadCmd.Flags().BoolVarP(&opt.UploadRecoverData, "upload-recovery",
 		"u", true, "Allow upload recovered chunk back to IPFS network")
 	downloadCmd.Flags().IntSliceVar(&opt.DataFilter, "missing-data",
@@ -93,7 +196,7 @@ func (c *Client) AddDownloadCmd() {
 	c.AddCommand(downloadCmd)
 }
 
-func (c *Client) AddPerformanceCmd() {
+func (c *Command) AddPerformanceCmd() {
 	var rootCmd = &cobra.Command{Use: "perf"}
 
 	var fileCase string

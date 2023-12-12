@@ -1,4 +1,4 @@
-package cmd
+package client
 
 import (
 	"ipfs-alpha-entanglement-code/entangler"
