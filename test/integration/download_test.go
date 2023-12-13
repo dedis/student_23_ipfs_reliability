@@ -2,7 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"ipfs-alpha-entanglement-code/cmd"
+	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/performance"
 	"os"
 	"testing"
@@ -14,16 +14,16 @@ func Test_Download(t *testing.T) {
 	// util.EnableLogPrint()
 	download := func(filepath string, fileCID string, metaCID string, datafilter []int) func(*testing.T) {
 		return func(t *testing.T) {
-			client, err := cmd.NewClient()
+			cl, err := client.NewClient()
 			require.NoError(t, err)
 
-			option := cmd.DownloadOption{
+			option := client.DownloadOption{
 				MetaCID:           metaCID,
 				UploadRecoverData: true,
 				DataFilter:        datafilter,
 			}
 
-			out, err := client.Download(fileCID, "", option)
+			out, err := cl.Download(fileCID, "", option)
 			require.NoError(t, err)
 
 			expectedResult, err := os.ReadFile(filepath)

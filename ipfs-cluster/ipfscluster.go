@@ -15,6 +15,7 @@ type Connector struct {
 	selfID     string
 	peerIDs    []string
 	currentIdx int
+	peers      map[string]string
 }
 
 // CreateIPFSClusterConnector is the constructor of IPFSClusterConnector
@@ -22,7 +23,9 @@ func CreateIPFSClusterConnector(port int) (*Connector, error) {
 	if port == 0 {
 		port = DefaultPort
 	}
+
 	conn := Connector{url: fmt.Sprintf("http://127.0.0.1:%d", port)}
+	conn.peers = make(map[string]string)
 	_, err := conn.PeerInfo()
 	if err != nil {
 		return nil, err
@@ -81,12 +84,25 @@ func (c *Connector) PeerLs() (int, error) {
 			panic(err)
 		}
 		peersInfo = append(peersInfo, info)
+		c.peers[info["id"].(string)] = info["peername"].(string)
 		if info["id"].(string) != c.selfID {
 			c.peerIDs = append(c.peerIDs, info["id"].(string))
 		}
 	}
 
 	return len(peersInfo), nil
+}
+
+func (c *Connector) GetAllPeers() map[string]string {
+	return c.peers
+}
+
+func (c *Connector) GetPeerIDs() []string {
+	return c.peerIDs
+}
+
+func (c *Connector) GetPeerName(peerID string) string {
+	return c.peers[peerID]
 }
 
 // PinStatus check the status of the specified cid, if the CID is not given, it will
@@ -131,6 +147,41 @@ func (c *Connector) PinStatus(cid string) (string, error) {
 	pinStatus = fmt.Sprintf("\nTotal number of pins: %d\n", len(pinInfo)) + pinStatus
 
 	return pinStatus, err
+}
+
+// Returns the peer names of the peers that are pinning the specified CID
+func (c *Connector) GetPinAllocations(cid string) ([]string, error) {
+	/* Check the pin status of all CIDs or a specific CID
+	For the moment, only checks the number of pin peers */
+	statusURL := c.url + "/pins/" + cid
+
+	resp, err := http.Get(statusURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var pinInfo map[string]interface{}
+	decoder := json.NewDecoder(resp.Body)
+	if err = decoder.Decode(&pinInfo); err != nil {
+		panic(err)
+	}
+
+	allocations, ok := pinInfo["allocations"].([]interface{})
+	if !ok {
+		fmt.Println("Error: unable to find or assert allocations as an array")
+		return nil, err
+	}
+
+	var peerNames []string
+	for _, allocation := range allocations {
+		if peerID, ok := allocation.(string); ok {
+			peerNames = append(peerNames, c.GetPeerName(peerID))
+		}
+	}
+
+	return peerNames, nil
+
 }
 
 // AddPin add the specified CID to the ipfs cluster, with the specified replication factor,

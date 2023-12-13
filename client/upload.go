@@ -12,16 +12,24 @@ import (
 )
 
 // Upload uploads the original file, generates and uploads the entanglement of that file
-func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
+func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor int) (rootCID string,
 	metaCID string, pinResult func() error, err error) {
 
-	// init ipfs connector. Fail the whole process if no connection built
-	err = c.InitIPFSConnector()
-	if err != nil {
-		return "", "", nil, err
-	}
+	// // init ipfs connector. Fail the whole process if no connection built
+	// err = c.InitIPFSConnector()
+	// if err != nil {
+	// 	return "", "", nil, err
+	// }
 
 	/* add original file to ipfs */
+
+	peers_ := c.IPFSClusterConnector.GetAllPeers()
+
+	util.LogPrintf("Total %d peers in cluster", len(peers_))
+	// print all peer information
+	for id, peer := range peers_ {
+		util.LogPrintf("Peer %s: %s", id, peer)
+	}
 
 	rootCID, err = c.AddFile(path)
 	util.CheckError(err, "could not add File to IPFS")
@@ -66,14 +74,14 @@ func (c *Client) Upload(path string, alpha int, s int, p int) (rootCID string,
 		return rootCID, "", nil, err
 	}
 
-	// init cluster connector. Delay th fail after all uploading to IPFS finishes
-	clusterErr := c.InitIPFSClusterConnector()
-	if clusterErr != nil {
-		return rootCID, metaCID, nil, clusterErr
-	}
+	// // init cluster connector. Delay th fail after all uploading to IPFS finishes
+	// clusterErr := c.InitIPFSClusterConnector()
+	// if clusterErr != nil {
+	// 	return rootCID, metaCID, nil, clusterErr
+	// }
 
 	/* pin files in cluster */
-	treeCids, maxParityChildren, err := c.pinAlphaEntanglements(alpha, parityBlocks)
+	treeCids, maxParityChildren, err := c.pinAlphaEntanglements(alpha, parityBlocks, replicationFactor)
 	if err != nil {
 		return rootCID, "", nil, err
 	}
@@ -191,7 +199,7 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 	return parityCIDs, parityBlocks, nil
 }
 
-func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]string, int, error) {
+func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte, replicationFactor int) ([]string, int, error) {
 	// for each strand, merge all bytes into one byte array
 	// then upload the whole file to IPFS
 	// retreieve the merkle tree of each file
@@ -226,7 +234,7 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 		util.LogPrintf("Finish uploading entanglement %d with root cid %s", k, blockCID)
 
 		// pin the whole file block by block
-		tmpMaxChildren, err := c.pinEntanglementTree(blockCID)
+		tmpMaxChildren, err := c.pinEntanglementTree(blockCID, replicationFactor)
 		if err != nil {
 			return nil, 0, xerrors.Errorf("could not pin parity %d: %s", k, err)
 		}
@@ -241,7 +249,7 @@ func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte) ([]st
 	return parityCIDs, currentMaxChildren, nil
 }
 
-func (c *Client) pinEntanglementTree(entaglementCID string) (int, error) {
+func (c *Client) pinEntanglementTree(entaglementCID string, replicationFactor int) (int, error) {
 	// get the merkle tree from IPFS
 	currentMaxChildren := 0
 	tree, _, _, err := c.GetMerkleTree(entaglementCID, nil)
@@ -259,7 +267,13 @@ func (c *Client) pinEntanglementTree(entaglementCID string) (int, error) {
 		}
 		util.LogPrintf("pinning node %s", parent.CID)
 		// pin the current node
-		err := c.IPFSClusterConnector.AddPinDirect(parent.CID, 1)
+		// if leaf then just pin once, otherwise pin replicationFactor times
+		var err error
+		if len(parent.Children) == 0 {
+			err = c.IPFSClusterConnector.AddPinDirect(parent.CID, 1)
+		} else {
+			err = c.IPFSClusterConnector.AddPinDirect(parent.CID, replicationFactor)
+		}
 		if err != nil {
 			log.Printf("could not pin node %s: %s", parent.CID, err)
 			return

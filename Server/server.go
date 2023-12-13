@@ -3,6 +3,7 @@ package Server
 import (
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
+	"ipfs-alpha-entanglement-code/docker"
 	"strconv"
 	"strings"
 
@@ -21,7 +22,13 @@ func (s *Server) setUpServer() {
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
 	s.ginEngine.POST("/notifyFailure", func(c *gin.Context) { notifyFailure(s, c) })
 
+	// repair endpoints
 	s.ginEngine.GET("/downloadFile", func(c *gin.Context) { downloadFile(s, c) })
+	s.ginEngine.POST("/triggerCollabRepair", func(c *gin.Context) { triggerCollabRepair(s, c) })
+	s.ginEngine.POST("/triggerUnitRepair", func(c *gin.Context) { triggerUnitRepair(s, c) })
+	s.ginEngine.POST("/triggerStrandRepair", func(c *gin.Context) { triggerStrandRepair(s, c) })
+	s.ginEngine.POST("/reportUnitRepair", func(c *gin.Context) { reportUnitRepair(s, c) })
+	s.ginEngine.POST("/reportCollabRepair", func(c *gin.Context) { reportCollabRepair(s, c) })
 
 	// TODO: Init State
 
@@ -30,6 +37,14 @@ func (s *Server) setUpServer() {
 	s.state = State{files: make(map[string]FileStats)}
 	s.sh = shell.NewLocalShell() // FIXME need to call NewShell?
 	s.client = &client.Client{}
+	s.ipConverter = &docker.DockerClusterToCommunityConverter{}
+	s.collabOps = make(chan CollaborativeRepairOperation)
+	s.collabDone = make(chan CollaborativeRepairDone)
+	s.unitOps = make(chan UnitRepairOperation)
+	s.unitDone = make(chan UnitRepairDone)
+	s.strandOps = make(chan StrandRepairOperation)
+	s.collabData = make(map[string]CollaborativeRepairData)
+	s.strandData = make(map[string]StrandRepairData)
 }
 
 // RunServer
@@ -139,4 +154,98 @@ func downloadFile(s *Server, c *gin.Context) {
 	} else {
 		c.JSON(200, gin.H{"message": "Downloaded", "out": out})
 	}
+}
+
+func triggerCollabRepair(s *Server, c *gin.Context) {
+	var opRequest CollaborativeRepairOperationRequest
+	if err := c.ShouldBindJSON(&opRequest); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	newOp := CollaborativeRepairOperation{
+		FileCID: opRequest.FileCID,
+		MetaCID: opRequest.MetaCID,
+		Depth:   opRequest.Depth,
+		Origin:  c.Request.RemoteAddr,
+		Peer:    opRequest.Peer,
+	}
+
+	s.collabOps <- newOp
+
+	c.JSON(200, gin.H{"message": "Collab repair triggered"})
+}
+
+func triggerUnitRepair(s *Server, c *gin.Context) {
+	var opRequest UnitRepairOperationRequest
+	if err := c.ShouldBindJSON(&opRequest); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	newOp := UnitRepairOperation{
+		FileCID:    opRequest.FileCID,
+		MetaCID:    opRequest.MetaCID,
+		FailedCIDs: opRequest.FailedCIDs,
+		Depth:      opRequest.Depth,
+		Origin:     c.Request.RemoteAddr,
+		Peer:       opRequest.Peer,
+	}
+
+	s.unitOps <- newOp
+
+	c.JSON(200, gin.H{"message": "Unit repair triggered"})
+
+}
+
+func triggerStrandRepair(s *Server, c *gin.Context) {
+	var opRequest StrandRepairOperationRequest
+	if err := c.ShouldBindJSON(&opRequest); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	newOp := StrandRepairOperation{
+		FileCID: opRequest.FileCID,
+		MetaCID: opRequest.MetaCID,
+		Strand:  opRequest.Strand,
+	}
+
+	s.strandOps <- newOp
+
+	c.JSON(200, gin.H{"message": "Strand repair triggered"})
+}
+
+func reportUnitRepair(s *Server, c *gin.Context) {
+	var opResponse UnitRepairOperationResponse
+	if err := c.ShouldBindJSON(&opResponse); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	newOp := UnitRepairDone{
+		FileCID:      opResponse.FileCID,
+		MetaCID:      opResponse.MetaCID,
+		Peer:         opResponse.Peer,
+		RepairStatus: opResponse.RepairStatus,
+	}
+
+	s.unitDone <- newOp
+}
+
+func reportCollabRepair(s *Server, c *gin.Context) {
+	var opResponse CollaborativeRepairOperationResponse
+	if err := c.ShouldBindJSON(&opResponse); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	newOp := CollaborativeRepairDone{
+		FileCID:      opResponse.FileCID,
+		MetaCID:      opResponse.MetaCID,
+		Peer:         opResponse.Peer,
+		RepairStatus: opResponse.RepairStatus,
+	}
+
+	s.collabDone <- newOp
 }

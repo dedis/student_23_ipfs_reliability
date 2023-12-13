@@ -28,7 +28,11 @@ type Command struct {
 func NewCommand() (command *Command, err error) {
 	command = &Command{}
 	command.initCmd()
-	command.Client = &client.Client{}
+	cl, err := client.NewClient()
+	if err != nil {
+		return nil, err
+	}
+	command.Client = cl
 	command.Server = &Server.Server{}
 
 	return command, nil
@@ -67,7 +71,7 @@ func (c *Command) AddDaemonCmd() {
 
 // AddUploadCmd enables upload functionality
 func (c *Command) AddUploadCmd() {
-	var alpha, s, p int
+	var alpha, s, p, replication int
 	uploadCmd := &cobra.Command{
 		Use:   "upload [path]",
 		Short: "Upload a file to IPFS",
@@ -76,7 +80,7 @@ func (c *Command) AddUploadCmd() {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.EnableLogPrint()
 
-			cid, metaCID, pinResult, err := c.Upload(args[0], alpha, s, p)
+			cid, metaCID, pinResult, err := c.Upload(args[0], alpha, s, p, replication)
 			if len(cid) > 0 {
 				log.Println("Finish adding file to IPFS. File CID: ", cid)
 			}
@@ -100,6 +104,7 @@ func (c *Command) AddUploadCmd() {
 	uploadCmd.Flags().IntVarP(&alpha, "alpha", "a", 0, "Set entanglement alpha. 0 means no entanglement")
 	uploadCmd.Flags().IntVarP(&s, "s", "s", 0, "Set entanglement s")
 	uploadCmd.Flags().IntVarP(&p, "p", "p", 0, "Set entanglement p")
+	uploadCmd.Flags().IntVarP(&replication, "replication", "r", 3, "Set replication factor for intermediate nodes of EMTs")
 
 	c.AddCommand(uploadCmd)
 }

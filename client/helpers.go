@@ -33,6 +33,21 @@ type Client struct {
 	IPFSClusterConnector *ipfscluster.Connector
 }
 
+// create client
+func NewClient() (client *Client, err error) {
+	client = &Client{}
+	err = client.InitIPFSConnector()
+	if err != nil {
+		return nil, err
+	}
+	err = client.InitIPFSClusterConnector()
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
 // init ipfs connector for future usage
 func (c *Client) InitIPFSConnector() error {
 	conn, err := ipfsconnector.CreateIPFSConnector(0)

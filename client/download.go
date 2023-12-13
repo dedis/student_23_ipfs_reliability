@@ -18,10 +18,10 @@ type DownloadOption struct {
 
 // Download download the original file, repair it if metadata is provided
 func (c *Client) Download(rootCID string, path string, option DownloadOption) (out string, err error) {
-	err = c.InitIPFSConnector()
-	if err != nil {
-		return "", err
-	}
+	// err = c.InitIPFSConnector()
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	/* direct downloading if no metafile provided */
 	if len(option.MetaCID) == 0 {
