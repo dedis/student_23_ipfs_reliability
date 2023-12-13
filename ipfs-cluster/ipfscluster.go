@@ -84,8 +84,8 @@ func (c *Connector) PeerLs() (int, error) {
 			panic(err)
 		}
 		peersInfo = append(peersInfo, info)
-		c.peers[info["id"].(string)] = info["peername"].(string)
 		if info["id"].(string) != c.selfID {
+			c.peers[info["id"].(string)] = info["peername"].(string)
 			c.peerIDs = append(c.peerIDs, info["id"].(string))
 		}
 	}
@@ -94,6 +94,11 @@ func (c *Connector) PeerLs() (int, error) {
 }
 
 func (c *Connector) GetAllPeers() map[string]string {
+	return c.peers
+}
+
+func (c *Connector) GetLatestPeers() map[string]string {
+	c.PeerLs()
 	return c.peers
 }
 

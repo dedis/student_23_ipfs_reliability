@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/docker"
+	"ipfs-alpha-entanglement-code/util"
 	"strconv"
 	"strings"
 
@@ -38,13 +39,13 @@ func (s *Server) setUpServer() {
 	s.sh = shell.NewLocalShell() // FIXME need to call NewShell?
 	s.client = &client.Client{}
 	s.ipConverter = &docker.DockerClusterToCommunityConverter{}
-	s.collabOps = make(chan CollaborativeRepairOperation)
-	s.collabDone = make(chan CollaborativeRepairDone)
-	s.unitOps = make(chan UnitRepairOperation)
-	s.unitDone = make(chan UnitRepairDone)
-	s.strandOps = make(chan StrandRepairOperation)
-	s.collabData = make(map[string]CollaborativeRepairData)
-	s.strandData = make(map[string]StrandRepairData)
+	s.collabOps = make(chan *CollaborativeRepairOperation)
+	s.collabDone = make(chan *CollaborativeRepairDone)
+	s.unitOps = make(chan *UnitRepairOperation)
+	s.unitDone = make(chan *UnitRepairDone)
+	s.strandOps = make(chan *StrandRepairOperation)
+	s.collabData = make(map[string]*CollaborativeRepairData)
+	s.strandData = make(map[string]*StrandRepairData)
 }
 
 // RunServer
@@ -52,6 +53,10 @@ func (s *Server) setUpServer() {
 // @param port: The port to listen on
 func (s *Server) RunServer(port int) int {
 	s.setUpServer()
+
+	// TODO: Update address to reflect actual address seen by others
+	s.address = fmt.Sprintf("localhost:%d", port)
+	util.LogPrintf("Server listening on %s", s.address)
 
 	// Starting daemon
 	go Daemon(s)
@@ -158,12 +163,12 @@ func triggerCollabRepair(s *Server, c *gin.Context) {
 		return
 	}
 
-	newOp := CollaborativeRepairOperation{
-		FileCID: opRequest.FileCID,
-		MetaCID: opRequest.MetaCID,
-		Depth:   opRequest.Depth,
-		Origin:  c.Request.RemoteAddr,
-		Peer:    opRequest.Peer,
+	newOp := &CollaborativeRepairOperation{
+		FileCID:  opRequest.FileCID,
+		MetaCID:  opRequest.MetaCID,
+		Depth:    opRequest.Depth,
+		Origin:   opRequest.Origin,
+		NumPeers: opRequest.NumPeers,
 	}
 
 	s.collabOps <- newOp
@@ -178,13 +183,12 @@ func triggerUnitRepair(s *Server, c *gin.Context) {
 		return
 	}
 
-	newOp := UnitRepairOperation{
-		FileCID:    opRequest.FileCID,
-		MetaCID:    opRequest.MetaCID,
-		FailedCIDs: opRequest.FailedCIDs,
-		Depth:      opRequest.Depth,
-		Origin:     c.Request.RemoteAddr,
-		Peer:       opRequest.Peer,
+	newOp := &UnitRepairOperation{
+		FileCID:       opRequest.FileCID,
+		MetaCID:       opRequest.MetaCID,
+		FailedIndices: opRequest.FailedIndices,
+		Depth:         opRequest.Depth,
+		Origin:        opRequest.Origin,
 	}
 
 	s.unitOps <- newOp
@@ -200,10 +204,11 @@ func triggerStrandRepair(s *Server, c *gin.Context) {
 		return
 	}
 
-	newOp := StrandRepairOperation{
+	newOp := &StrandRepairOperation{
 		FileCID: opRequest.FileCID,
 		MetaCID: opRequest.MetaCID,
 		Strand:  opRequest.Strand,
+		Depth:   opRequest.Depth,
 	}
 
 	s.strandOps <- newOp
@@ -218,10 +223,10 @@ func reportUnitRepair(s *Server, c *gin.Context) {
 		return
 	}
 
-	newOp := UnitRepairDone{
+	newOp := &UnitRepairDone{
 		FileCID:      opResponse.FileCID,
 		MetaCID:      opResponse.MetaCID,
-		Peer:         opResponse.Peer,
+		Origin:       opResponse.Origin,
 		RepairStatus: opResponse.RepairStatus,
 	}
 
@@ -235,10 +240,10 @@ func reportCollabRepair(s *Server, c *gin.Context) {
 		return
 	}
 
-	newOp := CollaborativeRepairDone{
+	newOp := &CollaborativeRepairDone{
 		FileCID:      opResponse.FileCID,
 		MetaCID:      opResponse.MetaCID,
-		Peer:         opResponse.Peer,
+		Origin:       opResponse.Origin,
 		RepairStatus: opResponse.RepairStatus,
 	}
 

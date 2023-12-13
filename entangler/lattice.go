@@ -72,6 +72,15 @@ func (l *Lattice) UpdateParity(index int, strand int, data []byte) {
 	l.ParityBlocks[strand][index].SetData(data, true)
 }
 
+// GetChunk returns a data chunk in the indexed block with the given depth
+func (l *Lattice) GetChunkDepth(index int, depth uint) (data []byte, repaired bool, err error) {
+	block := l.getBlock(index)
+	data, err = l.getDataFromBlock(block, depth)
+	repaired = block.IsRepaired()
+
+	return data, repaired, err
+}
+
 // GetChunk returns a data chunk in the indexed block
 func (l *Lattice) GetChunk(index int) (data []byte, repaired bool, err error) {
 	block := l.getBlock(index)

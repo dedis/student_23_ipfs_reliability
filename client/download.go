@@ -172,6 +172,20 @@ func (c *Client) dataReupload(chunk []byte, cid string, allow bool) error {
 	return nil
 }
 
+// dataReupload re-uploads the recovered data back to IPFS
+func (c *Client) dataReuploadNoCheck(chunk []byte, allow bool) error {
+	if !allow {
+		return nil
+	}
+
+	_, err := c.AddRawData(chunk)
+	if err != nil {
+		return xerrors.Errorf("fail to upload the repaired chunk to IPFS: %s", err)
+	}
+
+	return nil
+}
+
 // writeFile writes the recovered data to the file at the output path
 func writeFile(rootCID string, path string, data []byte, repaired bool) (out string, err error) {
 	if len(path) == 0 {

@@ -14,6 +14,16 @@ func Daemon(s *Server) {
 		select {
 		case <-s.ctx:
 			return
+		case op := <-s.collabOps:
+			s.StartCollabRepair(op)
+		case op := <-s.unitOps:
+			s.StartUnitRepair(op)
+		case op := <-s.collabDone:
+			s.ContinueStrandRepair(op)
+		case op := <-s.unitDone:
+			s.ReportUnitRepair(op)
+		case op := <-s.strandOps:
+			s.StartStrandRepair(op)
 
 		case op := <-s.operations:
 			switch {
