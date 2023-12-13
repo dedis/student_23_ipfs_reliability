@@ -11,16 +11,17 @@ import (
 	shell "github.com/ipfs/go-ipfs-api"
 )
 
+// SetUpServer
+// @Description: Initialize the Server struct and the REST endpoints
 func (s *Server) setUpServer() {
 	s.ginEngine = gin.Default()
-	// TODO: Config port and other network settings
 
+	// monitoring endpoints
 	s.ginEngine.POST("/startMonitorFile", func(c *gin.Context) { startMonitorFile(s, c) })
 	s.ginEngine.POST("/stopMonitorFile", func(c *gin.Context) { stopMonitorFile(s, c) })
 	s.ginEngine.GET("/listMonitor", func(c *gin.Context) { listMonitor(s, c) })
 	s.ginEngine.GET("/checkFileStatus", func(c *gin.Context) { checkFileStatus(s, c) })
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
-	s.ginEngine.POST("/notifyFailure", func(c *gin.Context) { notifyFailure(s, c) })
 
 	// repair endpoints
 	s.ginEngine.GET("/downloadFile", func(c *gin.Context) { downloadFile(s, c) })
@@ -30,8 +31,7 @@ func (s *Server) setUpServer() {
 	s.ginEngine.POST("/reportUnitRepair", func(c *gin.Context) { reportUnitRepair(s, c) })
 	s.ginEngine.POST("/reportCollabRepair", func(c *gin.Context) { reportCollabRepair(s, c) })
 
-	// TODO: Init State
-
+	// init state
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]FileStats)}
@@ -95,7 +95,7 @@ func stopMonitorFile(s *Server, c *gin.Context) {
 		return
 	}
 
-	s.operations <- Operation{START_MONITOR_FILE, dataRoot}
+	s.operations <- Operation{STOP_MONITOR_FILE, dataRoot}
 
 	c.JSON(200, gin.H{"message": "Stop op."})
 }
@@ -126,11 +126,6 @@ func checkFileStatus(s *Server, c *gin.Context) {
 }
 
 func checkClusterStatus(s *Server, c *gin.Context) {
-	// TODO implement
-	c.JSON(503, gin.H{"message": "Not Yet implemented"})
-}
-
-func notifyFailure(s *Server, c *gin.Context) {
 	// TODO implement
 	c.JSON(503, gin.H{"message": "Not Yet implemented"})
 }
