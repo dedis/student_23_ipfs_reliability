@@ -7,7 +7,8 @@ import (
 )
 
 func Daemon(s *Server) {
-	timer := time.NewTimer(30 * time.Second)
+	timerFiles := time.NewTimer(30 * time.Second)
+	timerShareView := time.NewTimer(3 * time.Minute)
 
 	for {
 		select {
@@ -41,30 +42,34 @@ func Daemon(s *Server) {
 				delete(s.state.files, op.parameter)
 				s.stateMux.Unlock()
 
-			case op.operationType == REPARE_FILE:
-				// TODO collaborative repairs from here? or done in a go routine somewhere else?
-				println("Collaborative repair not implemented yet")
-
 			default:
 				println("Unknown operation type, please fix...")
 			}
 			break
 
-		case <-timer.C:
+		case <-timerFiles.C:
 			s.stateMux.Lock()
-			// TODO: Periodic operations
-			println("Periodic operations... (TODO)\n")
-
-			// TODO: Check a block for each file
+			// check a block for each file
 			for file, stats := range s.state.files {
-				println("Checking file", file, "with strand", stats.strandCID, "... (TODO)\n")
+				println("Checking file: ", file, "with strandRoot: ", stats.strandRootCID, "\n")
 				s.InspectFile(file, &stats)
 			}
-
-			// TODO: Check Cluster health? health metrics (ping)
 			s.stateMux.Unlock()
 
-			timer.Reset(30 * time.Second)
+			timerFiles.Reset(30 * time.Second)
+
+		case <-timerShareView.C:
+			s.stateMux.Lock()
+
+			// TODO: for each StrandRootCID that the node tracks, send view of stats to other trackers
+			//  make others track if re-pin operation occurred
+			for file, stats := range s.state.files {
+				println("Sharing view for file: ", file, "with strandRoot: ", stats.strandRootCID, "\n")
+				s.ShareView(file, &stats)
+			}
+			s.stateMux.Unlock()
+
+			timerShareView.Reset(3 * time.Minute)
 		}
 	}
 }

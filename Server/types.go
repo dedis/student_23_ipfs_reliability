@@ -20,7 +20,7 @@ type State struct {
 }
 
 type FileStats struct {
-	strandCID           string
+	strandRootCID       string
 	numBlocks           int
 	dataBlocksMissing   map[uint]WatchedBlock
 	parityBlocksMissing map[uint]WatchedBlock
@@ -150,7 +150,6 @@ type OperationType int
 const (
 	START_MONITOR_FILE OperationType = iota
 	STOP_MONITOR_FILE
-	REPARE_FILE
 )
 
 type Operation struct {
