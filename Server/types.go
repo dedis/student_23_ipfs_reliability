@@ -175,6 +175,7 @@ type Server struct {
 	operations       chan Operation
 	ctx              chan struct{}
 	client           *client.Client
+	address          string
 	clusterConnector *ipfscluster.Connector
 
 	// data for collaborative repair
