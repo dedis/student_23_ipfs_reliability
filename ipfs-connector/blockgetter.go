@@ -152,6 +152,57 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
 }
 
+// GetDataCID - TODO: mostly redoing of above func with only CID: GetData, try fixing
+func (getter *IPFSGetter) GetDataCID(index int) string {
+	for k := range getter.DataFilter {
+		util.LogPrintf("DataFilter: %d", k)
+	}
+	/* get the data, mask to represent the data loss */
+	if getter.DataFilter != nil {
+		if _, ok := getter.DataFilter[index]; ok {
+			return ""
+		}
+	}
+
+	util.LogPrintf("Getting CID for index %d", index)
+	target_node, ok := getter.NodeMap[index]
+
+	if !ok {
+		util.LogPrintf("Could not find node for index %d", index)
+		return ""
+	}
+
+	// if node contains CID just return the data
+	if target_node.CID != "" {
+		util.LogPrintf("Found CID for index %d", index)
+		return target_node.CID
+	}
+
+	for {
+		// if node doesn't contain data, but the cid exists,
+		// then we use the cid to fetch the data from ipfs
+		if target_node.CID != "" {
+			util.LogPrintf("Found CID %s for index %d", target_node.CID, index)
+			return target_node.CID
+
+		}
+
+		// if node doesn't contain data and the cid doesn't exist,
+		// then we need to find the parent of this node and repeat the procedure
+		util.LogPrintf("Could not find CID for index %d, finding its parent", index)
+		parent_index, ok := getter.ParentMap[index]
+		if !ok || parent_index == index {
+			return ""
+		}
+
+		util.LogPrintf("Found parent for index %d, with index %d", index, parent_index)
+		_, err := getter.GetData(parent_index)
+		if err != nil {
+			return ""
+		}
+	}
+}
+
 // func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 // 	/* Get the target CID of the block */
 // 	cid, ok := getter.DataIndexCIDMap.Get(index)
@@ -319,4 +370,23 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	}
 
 	return final_data, nil
+}
+
+// GetParityCID - return the first CID where the parity block is stored
+func (getter *IPFSGetter) GetParityCID(index int, strand int) string {
+	if !getter.ParityAvailable[strand] {
+		util.LogPrintf("Parity tree is missing: strand=%d", strand)
+		return ""
+	}
+
+	// TODO: make these variables global and initialize them once!
+	blocks := calculateNewBlocks(262158, 262144, index)
+
+	targetNode, ok := getter.ParityIndexMap[strand][blocks[0][0]]
+	if !ok {
+		util.LogPrintf("No parity exists")
+		return ""
+	}
+
+	return targetNode.CID
 }
