@@ -1,21 +1,20 @@
 package integration
 
 import (
-	"ipfs-alpha-entanglement-code/cmd"
+	"github.com/stretchr/testify/require"
+	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/performance"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func Test_Repair_Strand(t *testing.T) {
 	// util.EnableLogPrint()
 	repair := func(fileCID string, metaCID string, strand int) func(*testing.T) {
 		return func(t *testing.T) {
-			client, err := cmd.NewClient()
+			clientVar, err := client.NewClient()
 			require.NoError(t, err)
 
-			err = client.RepairStrand(fileCID, metaCID, strand)
+			err = clientVar.RepairStrand(fileCID, metaCID, strand)
 			require.NoError(t, err)
 		}
 	}

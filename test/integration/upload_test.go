@@ -2,7 +2,7 @@ package integration
 
 import (
 	"fmt"
-	"ipfs-alpha-entanglement-code/cmd"
+	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/performance"
 	"testing"
 
@@ -14,10 +14,10 @@ func Test_Upload(t *testing.T) {
 	alpha, s, p := 3, 5, 5
 	upload := func(filepath string, expectedCID string, expectedMetaCID string) func(*testing.T) {
 		return func(t *testing.T) {
-			client, err := cmd.NewClient()
+			clientVar, err := client.NewClient()
 			require.NoError(t, err)
 
-			rootCID, metaCID, pinResult, err := client.Upload(filepath, alpha, s, p)
+			rootCID, metaCID, pinResult, err := clientVar.Upload(filepath, alpha, s, p, 3)
 			require.NoError(t, err)
 
 			require.Equal(t, expectedCID, rootCID)
