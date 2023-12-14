@@ -147,18 +147,18 @@ func (c *Client) RepairStrand(rootCID string, metadataCID string, strand int) (e
 
 // Function that prepares all data structures needed before downloading or repairing a file
 
-func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (*Metadata, *ipfsconnector.IPFSGetter, *entangler.Lattice, *ipfsconnector.EmptyTreeNode, error) {
+func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (*Metadata, *ipfsconnector.IPFSGetter, *entangler.Lattice, *ipfsconnector.EmptyTreeNode, *map[int]*ipfsconnector.EmptyTreeNode, error) {
 
 	metaData, err := c.GetMetaData(metadataCID)
 	if err != nil {
-		return nil, nil, nil, nil, xerrors.Errorf("fail to download metaData: %s", err)
+		return nil, nil, nil, nil, nil, xerrors.Errorf("fail to download metaData: %s", err)
 	}
 
 	// Construct empty tree
 	merkleTree, child_parent_index_map, index_node_map, err := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
 
 	if err != nil {
-		return nil, nil, nil, nil, xerrors.Errorf("fail to construct tree: %s", err)
+		return nil, nil, nil, nil, nil, xerrors.Errorf("fail to construct tree: %s", err)
 	}
 
 	merkleTree.CID = metaData.OriginalFileCID
@@ -186,7 +186,7 @@ func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (
 	lattice := entangler.NewLattice(metaData.Alpha, metaData.S, metaData.P, metaData.NumBlocks, getter, depth)
 	lattice.Init()
 
-	return metaData, getter, lattice, merkleTree, nil
+	return metaData, getter, lattice, merkleTree, &index_node_map, nil
 
 }
 
@@ -197,7 +197,7 @@ func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (
 
 func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth uint) (leafIndices []int, err error) {
 
-	_, _, lattice, root, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	_, _, lattice, root, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
 	leafIndices = make([]int, 0)
 
 	if err != nil {
@@ -272,7 +272,7 @@ func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth 
 
 func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth uint, leafIndices []int) (result map[int]bool, err error) {
 
-	_, _, lattice, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	_, _, lattice, _, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
 	result = make(map[int]bool)
 	for _, index := range leafIndices {
 		result[index] = false
