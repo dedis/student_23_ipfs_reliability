@@ -122,6 +122,8 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	pinResult = c.pinMetadataAndParities(metaCID, parityCIDs)
 
 	// TODO: Notify IPFS-Community Node that ROOT CIDs must be tracked (startMonitorFile or tellNodesTrackRootCIDs) ?
+	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+	// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
 
 	return rootCID, metaCID, pinResult, nil
 }

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	shell "github.com/ipfs/go-ipfs-api"
 )
 
 // SetUpServer
@@ -23,6 +22,7 @@ func (s *Server) setUpServer() {
 	s.ginEngine.GET("/listMonitor", func(c *gin.Context) { listMonitor(s, c) })
 	s.ginEngine.GET("/checkFileStatus", func(c *gin.Context) { checkFileStatus(s, c) })
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
+	s.ginEngine.POST("/updateView", func(c *gin.Context) { prepareUpdateView(s, c) })
 
 	// repair endpoints
 	s.ginEngine.GET("/downloadFile", func(c *gin.Context) { downloadFile(s, c) })
@@ -36,8 +36,8 @@ func (s *Server) setUpServer() {
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]FileStats)}
-	s.sh = shell.NewLocalShell() // FIXME need to call NewShell?
 	s.client = &client.Client{}
+	s.repairThreshold = 0.3 // FIXME user-set of global const
 	s.ipConverter = &docker.DockerClusterToCommunityConverter{}
 	s.collabOps = make(chan *CollaborativeRepairOperation)
 	s.collabDone = make(chan *CollaborativeRepairDone)
@@ -76,14 +76,15 @@ func (s *Server) RunServer(port int) int {
 func startMonitorFile(s *Server, c *gin.Context) {
 	dataRoot := c.Query("dataRoot")
 	strandParityRoot := c.Query("strandParityRoot")
-	numBlocks := c.Query("numBlocks")
+	numDataBlocks := c.Query("numBlocks")
+	numParityBlocks := c.Query("numBlocks")
 
-	if dataRoot == "" || strandParityRoot == "" || numBlocks == "" {
+	if dataRoot == "" || strandParityRoot == "" || numDataBlocks == "" || numParityBlocks == "" {
 		c.JSON(400, gin.H{"message": "Missing CID parameters"})
 		return
 	}
 
-	params := []string{dataRoot, strandParityRoot, numBlocks}
+	params := []string{dataRoot, strandParityRoot, numDataBlocks, numParityBlocks}
 
 	s.operations <- Operation{START_MONITOR_FILE, strings.Join(params, ",")}
 
@@ -91,7 +92,7 @@ func startMonitorFile(s *Server, c *gin.Context) {
 }
 
 // stopMonitorFile
-// Query parameters in context: dataRoot (CID)
+// Query parameters in context: dataRoot (CID-string)
 func stopMonitorFile(s *Server, c *gin.Context) {
 	dataRoot := c.Query("dataRoot")
 
@@ -119,7 +120,7 @@ func listMonitor(s *Server, c *gin.Context) {
 
 	for file, stats := range s.state.files {
 		cids += "CID=" + file + "-[Health = " +
-			strconv.FormatFloat(float64(stats.Health()), 'f', -1, 64) + "%], "
+			strconv.FormatFloat(float64(stats.ComputeHealth()), 'f', -1, 64) + "%], "
 	}
 
 	c.JSON(200, gin.H{"message": "Listing monitored CIDs", "CIDs": cids[:len(cids)-2]})
@@ -132,6 +133,29 @@ func checkFileStatus(s *Server, c *gin.Context) {
 
 func checkClusterStatus(s *Server, c *gin.Context) {
 	// TODO implement
+	c.JSON(503, gin.H{"message": "Not Yet implemented"})
+}
+
+// Query parameters in context: fileCID (CID-string)
+func prepareUpdateView(s *Server, c *gin.Context) {
+	fileCID := c.Query("fileCID")
+
+	var updateViewArgs FileStats
+	// parse args
+	if err := c.ShouldBindJSON(&updateViewArgs); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	updateViewArgs = FileStats{
+		StrandRootCID:       updateViewArgs.StrandRootCID,
+		DataBlocksMissing:   updateViewArgs.DataBlocksMissing,
+		ParityBlocksMissing: updateViewArgs.ParityBlocksMissing,
+		EstimatedBlockProb:  updateViewArgs.EstimatedBlockProb,
+		Health:              updateViewArgs.Health,
+	}
+
+	s.UpdateView(fileCID, &updateViewArgs)
 	c.JSON(503, gin.H{"message": "Not Yet implemented"})
 }
 

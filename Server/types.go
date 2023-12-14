@@ -2,12 +2,10 @@ package Server
 
 import (
 	"ipfs-alpha-entanglement-code/client"
-	ipfscluster "ipfs-alpha-entanglement-code/ipfs-cluster"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	shell "github.com/ipfs/go-ipfs-api"
 )
 
 type IPConverter interface {
@@ -16,18 +14,19 @@ type IPConverter interface {
 
 type State struct {
 	files map[string]FileStats
-	// TODO: Add state about the cluster
-	//  failed peers, time since last expired ping, avg time to failure
+	// TODO: Add more state about the cluster?
+	//  time since last expired ping, avg time to failure
+	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
 }
 
 type FileStats struct {
-	StrandRootCID       string `json:"strandRootCID"`
-	numDataBlocks       int
+	StrandRootCID       string                `json:"strandRootCID"`
+	NumDataBlocks       int                   `json:"numDataBlocks"`
 	DataBlocksMissing   map[uint]WatchedBlock `json:"dataBlocksMissing"`
-	numParityBlocks     int
+	NumParityBlocks     int                   `json:"numParityBlocks"`
 	ParityBlocksMissing map[uint]WatchedBlock `json:"parityBlocksMissing"`
 	EstimatedBlockProb  float32               `json:"estimatedBlockProb"`
-	health              float32
+	Health              float32               `json:"health"`
 }
 
 type WatchedBlock struct {
@@ -37,7 +36,7 @@ type WatchedBlock struct {
 }
 
 type ClusterPeer struct {
-	CID    string `json:"peerCID"`
+	Name   string `json:"peerName"`
 	Region string `json:"region"`
 }
 
@@ -168,15 +167,14 @@ type Operation struct {
 }
 
 type Server struct {
-	ginEngine        *gin.Engine
-	sh               *shell.Shell
-	state            State
-	stateMux         sync.Mutex
-	operations       chan Operation
-	ctx              chan struct{}
-	client           *client.Client
-	address          string
-	clusterConnector *ipfscluster.Connector
+	ginEngine       *gin.Engine
+	state           State
+	stateMux        sync.Mutex
+	operations      chan Operation
+	ctx             chan struct{}
+	client          *client.Client
+	address         string
+	repairThreshold float32
 
 	// data for collaborative repair
 	ipConverter IPConverter

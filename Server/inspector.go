@@ -2,17 +2,19 @@ package Server
 
 import "math/rand"
 
-// Health
+// ComputeHealth
 // @Description: Computes the estimated health of the file, corresponding to repairability of the file.
 // This value is based on the missing blocks and the current state of the cluster.
-func (fs *FileStats) Health() float32 {
+func (fs *FileStats) ComputeHealth() float32 {
 	// TODO: Update (repairability based on lattice with missing blocks and estimated block probability)
+	// sample three diff lattices with the missing blocks and the estimated block probability
+	// then compute the average repairability of the file (using the max repair depth of each)
 	return fs.EstimatedBlockProb
 }
 
 // selectBlockHeuristic
 // @Description: Selects a block to inspect based on the current view of the file.
-func (s *Server) selectBlockHeuristic(fs *FileStats) uint {
+func (s *Server) selectBlockHeuristic(fs *FileStats) (uint, bool) {
 	// TODO: Make usage of missing blocks and cluster state (region, etc.)
 
 	// 1/2 chance to select a data block
@@ -22,7 +24,7 @@ func (s *Server) selectBlockHeuristic(fs *FileStats) uint {
 	// 1/2 chance to select a parity block
 	//      same...
 
-	return uint(rand.Intn(fs.numDataBlocks))
+	return uint(rand.Intn(fs.NumDataBlocks)), true
 }
 
 // InspectFile
@@ -30,19 +32,22 @@ func (s *Server) selectBlockHeuristic(fs *FileStats) uint {
 func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 
 	// select block heuristically
-	blockNumber := s.selectBlockHeuristic(fs)
+	blockNumber, isData := s.selectBlockHeuristic(fs)
 
 	// TODO get CID from Block number
-	blockCID := fileCID // FIXME <-
+	var blockCID string
+	if isData {
+
+	} else {
+
+	}
 
 	// check block
-	//_, err := s.sh.BlockGet(blockCID)
-	var err error
-	err = nil
+	_, err := s.client.GetRawBlock(blockCID)
 	// TODO: timeout needed?
 
 	if err == nil {
-		fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(fs.numDataBlocks+fs.numParityBlocks-1) + 1) / float32(fs.numDataBlocks+fs.numParityBlocks)
+		fs.updateBlockProb(1.0)
 		delete(fs.DataBlocksMissing, blockNumber)
 	} else {
 		watchedBlock, in := fs.DataBlocksMissing[blockNumber]
@@ -52,16 +57,29 @@ func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 			watchedBlock.CID = blockCID
 			watchedBlock.Probability = 0.33
 
-			// TODO find Peer responsible for this block | check allocation for this CID
+			allocations, err := s.client.IPFSClusterConnector.GetPinAllocations(blockCID)
+			if err != nil {
+				return
+			}
+			watchedBlock.Peer.Name = allocations[0]
+			// TODO: fetch region of this peer if possible (from metrics... maybe impl function for this)
+			// watchedBlock.Peer.Region = ...
+			s.state.potentialFailedRegions[watchedBlock.Peer.Region] = append(s.state.potentialFailedRegions[watchedBlock.Peer.Region], watchedBlock.Peer.Name)
+
 			fs.DataBlocksMissing[blockNumber] = watchedBlock
 		}
 
 		// FIXME: Too harsh?
-		fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(fs.numDataBlocks+fs.numParityBlocks-1) + watchedBlock.Probability) / float32(fs.numDataBlocks+fs.numParityBlocks)
+		fs.updateBlockProb(watchedBlock.Probability)
 
-		// TODO recompute health
+		fs.Health = fs.ComputeHealth()
+		if fs.Health < s.repairThreshold {
+			// TODO trigger repair
+		}
 	}
+}
 
-	// TODO update stats about Cluster?
+func (fs *FileStats) updateBlockProb(testedBlockProb float32) {
+	fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(fs.NumDataBlocks+fs.NumParityBlocks-1) + testedBlockProb) / float32(fs.NumDataBlocks+fs.NumParityBlocks)
 
 }

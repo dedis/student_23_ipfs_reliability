@@ -58,7 +58,7 @@ func Daemon(s *Server) {
 				s.stateMux.Unlock()
 
 			default:
-				println("Unknown operation type, please fix...")
+				println("Unknown operation type (", op.operationType, "), please fix...")
 			}
 			break
 
