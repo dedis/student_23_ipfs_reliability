@@ -123,7 +123,27 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 
 	// TODO: Notify IPFS-Community Node that ROOT CIDs must be tracked (startMonitorFile or tellNodesTrackRootCIDs) ?
 	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
-	// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
+	for _, strandRoot := range treeCids {
+		peers, err := c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+		if err != nil {
+			log.Println("Couldn't start tracking for root CID: ", strandRoot)
+			return rootCID, metaCID, pinResult, nil
+		}
+		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
+		println(peers)
+		/* TODO: import from other package possible?
+		converter := DockerClusterToCommunityConverter{}
+
+		request := json.Marshal(FileStats{StrandRootCID: strandRoot,})
+		for _, peer := range peers {
+			communityPeerAddress := converter.ClusterToCommunityIP(peer)
+			status, err := PostJSON(communityPeerAddress+"/startMonitorFile", request)
+			if err != nil || status != success {
+
+			}
+		}
+		*/
+	}
 
 	return rootCID, metaCID, pinResult, nil
 }
