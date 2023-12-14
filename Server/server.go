@@ -76,15 +76,13 @@ func (s *Server) RunServer(port int) int {
 func startMonitorFile(s *Server, c *gin.Context) {
 	dataRoot := c.Query("dataRoot")
 	strandParityRoot := c.Query("strandParityRoot")
-	numDataBlocks := c.Query("numBlocks")
-	numParityBlocks := c.Query("numBlocks")
 
-	if dataRoot == "" || strandParityRoot == "" || numDataBlocks == "" || numParityBlocks == "" {
+	if dataRoot == "" || strandParityRoot == "" {
 		c.JSON(400, gin.H{"message": "Missing CID parameters"})
 		return
 	}
 
-	params := []string{dataRoot, strandParityRoot, numDataBlocks, numParityBlocks}
+	params := []string{dataRoot, strandParityRoot}
 
 	s.operations <- Operation{START_MONITOR_FILE, strings.Join(params, ",")}
 
