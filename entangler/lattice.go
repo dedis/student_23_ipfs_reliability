@@ -10,7 +10,9 @@ import (
 
 type BlockGetter interface {
 	GetData(index int) ([]byte, error)
+	GetDataCID(index int) string
 	GetParity(index int, strand int) ([]byte, error)
+	GetParityCID(index int, strand int) string
 }
 
 type Lattice struct {
@@ -43,6 +45,8 @@ func NewLattice(alpha int, s int, p int, blockNum int, blockGetter BlockGetter, 
 
 	return lattice
 }
+
+// TODO add return neighbours function (neighbours are 1-based)
 
 // Init inits the lattice by creating the entire structure in memory
 func (l *Lattice) Init() {
