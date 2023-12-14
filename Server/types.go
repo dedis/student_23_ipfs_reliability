@@ -2,6 +2,7 @@ package Server
 
 import (
 	"ipfs-alpha-entanglement-code/client"
+	ipfscluster "ipfs-alpha-entanglement-code/ipfs-cluster"
 	"sync"
 	"time"
 
@@ -20,23 +21,24 @@ type State struct {
 }
 
 type FileStats struct {
-	strandRootCID       string
-	numBlocks           int
-	dataBlocksMissing   map[uint]WatchedBlock
-	parityBlocksMissing map[uint]WatchedBlock
-	estimatedBlockProb  float32
+	StrandRootCID       string `json:"strandRootCID"`
+	numDataBlocks       int
+	DataBlocksMissing   map[uint]WatchedBlock `json:"dataBlocksMissing"`
+	numParityBlocks     int
+	ParityBlocksMissing map[uint]WatchedBlock `json:"parityBlocksMissing"`
+	EstimatedBlockProb  float32               `json:"estimatedBlockProb"`
 	health              float32
 }
 
 type WatchedBlock struct {
-	CID         string
-	peer        ClusterPeer
-	probability float32 // Presence probability (account for transient failures)
+	CID         string      `json:"blockCID"`
+	Peer        ClusterPeer `json:"hostPeer"`
+	Probability float32     `json:"prob"` // Presence probability (account for transient failures)
 }
 
 type ClusterPeer struct {
-	CID    string
-	region string
+	CID    string `json:"peerCID"`
+	Region string `json:"region"`
 }
 
 type CollaborativeRepairOperation struct {
@@ -166,14 +168,14 @@ type Operation struct {
 }
 
 type Server struct {
-	ginEngine  *gin.Engine
-	sh         *shell.Shell
-	state      State
-	stateMux   sync.Mutex
-	operations chan Operation
-	ctx        chan struct{}
-	client     *client.Client
-	address    string
+	ginEngine        *gin.Engine
+	sh               *shell.Shell
+	state            State
+	stateMux         sync.Mutex
+	operations       chan Operation
+	ctx              chan struct{}
+	client           *client.Client
+	clusterConnector *ipfscluster.Connector
 
 	// data for collaborative repair
 	ipConverter IPConverter

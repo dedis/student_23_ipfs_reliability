@@ -35,16 +35,21 @@ func Daemon(s *Server) {
 				}
 				dataCID := res[0]
 				strandCID := res[1]
-				numBlocks, err := strconv.Atoi(res[2])
+				numDataBlocks, err := strconv.Atoi(res[2])
+				if err != nil {
+					println("Number of blocks not an int in START_MONITOR_FILE")
+					break
+				}
+				numParityBlocks, err := strconv.Atoi(res[3])
 				if err != nil {
 					println("Number of blocks not an int in START_MONITOR_FILE")
 					break
 				}
 
 				s.stateMux.Lock()
-				s.state.files[dataCID] = FileStats{strandCID, numBlocks,
-					make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
-					0.1, 1.0}
+				s.state.files[dataCID] = FileStats{strandCID, numDataBlocks,
+					make(map[uint]WatchedBlock), numParityBlocks,
+					make(map[uint]WatchedBlock), 1.0, 1.0}
 				s.stateMux.Unlock()
 
 			case op.operationType == STOP_MONITOR_FILE:
@@ -61,7 +66,7 @@ func Daemon(s *Server) {
 			s.stateMux.Lock()
 			// check a block for each file
 			for file, stats := range s.state.files {
-				println("Checking file: ", file, "with strandRoot: ", stats.strandRootCID, "\n")
+				println("Checking file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
 				s.InspectFile(file, &stats)
 			}
 			s.stateMux.Unlock()
@@ -71,10 +76,9 @@ func Daemon(s *Server) {
 		case <-timerShareView.C:
 			s.stateMux.Lock()
 
-			// TODO: for each StrandRootCID that the node tracks, send view of stats to other trackers
-			//  make others track if re-pin operation occurred
+			// share view for each file
 			for file, stats := range s.state.files {
-				println("Sharing view for file: ", file, "with strandRoot: ", stats.strandRootCID, "\n")
+				println("Sharing view for file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
 				s.ShareView(file, &stats)
 			}
 			s.stateMux.Unlock()

@@ -7,14 +7,22 @@ import "math/rand"
 // This value is based on the missing blocks and the current state of the cluster.
 func (fs *FileStats) Health() float32 {
 	// TODO: Update (repairability based on lattice with missing blocks and estimated block probability)
-	return fs.estimatedBlockProb
+	return fs.EstimatedBlockProb
 }
 
 // selectBlockHeuristic
 // @Description: Selects a block to inspect based on the current view of the file.
 func (s *Server) selectBlockHeuristic(fs *FileStats) uint {
 	// TODO: Make usage of missing blocks and cluster state (region, etc.)
-	return uint(rand.Intn(fs.numBlocks))
+
+	// 1/2 chance to select a data block
+	// 		1/4 chance to retry a missing block
+	//      2/4 chance to try using tag:region to find new missing blocks
+	//      1/4 chance to select a block at random
+	// 1/2 chance to select a parity block
+	//      same...
+
+	return uint(rand.Intn(fs.numDataBlocks))
 }
 
 // InspectFile
@@ -31,28 +39,29 @@ func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 	//_, err := s.sh.BlockGet(blockCID)
 	var err error
 	err = nil
-	// FIXME check if timeout tell: block was not there
-	//  can store time (based on previous fetches) to download and set a timeout appropriately...
+	// TODO: timeout needed?
 
 	if err == nil {
-		fs.estimatedBlockProb = (fs.estimatedBlockProb*float32(fs.numBlocks-1) + 1) / float32(fs.numBlocks)
-		delete(fs.dataBlocksMissing, blockNumber)
+		fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(fs.numDataBlocks+fs.numParityBlocks-1) + 1) / float32(fs.numDataBlocks+fs.numParityBlocks)
+		delete(fs.DataBlocksMissing, blockNumber)
 	} else {
-		watchedBlock, in := fs.dataBlocksMissing[blockNumber]
+		watchedBlock, in := fs.DataBlocksMissing[blockNumber]
 		if in {
-			watchedBlock.probability /= 3
+			watchedBlock.Probability /= 3
 		} else {
 			watchedBlock.CID = blockCID
-			watchedBlock.probability = 0.33
+			watchedBlock.Probability = 0.33
 
-			// TODO find Peer responsible for this block
-			fs.dataBlocksMissing[blockNumber] = watchedBlock
+			// TODO find Peer responsible for this block | check allocation for this CID
+			fs.DataBlocksMissing[blockNumber] = watchedBlock
 		}
 
-		fs.estimatedBlockProb = (fs.estimatedBlockProb*float32(fs.numBlocks-1) + watchedBlock.probability) / float32(fs.numBlocks)
+		// FIXME: Too harsh?
+		fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(fs.numDataBlocks+fs.numParityBlocks-1) + watchedBlock.Probability) / float32(fs.numDataBlocks+fs.numParityBlocks)
+
+		// TODO recompute health
 	}
 
-	// update stats
+	// TODO update stats about Cluster?
 
-	// recompute health
 }
