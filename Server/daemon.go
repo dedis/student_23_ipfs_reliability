@@ -1,7 +1,6 @@
 package Server
 
 import (
-	"strconv"
 	"strings"
 	"time"
 )
@@ -29,26 +28,16 @@ func Daemon(s *Server) {
 			switch {
 			case op.operationType == START_MONITOR_FILE:
 				res := strings.Split(op.parameter, ",")
-				if len(res) != 3 {
+				if len(res) != 2 {
 					println("Incorrect number of parameters for START_MONITOR_FILE")
 					break
 				}
 				dataCID := res[0]
 				strandCID := res[1]
-				numDataBlocks, err := strconv.Atoi(res[2])
-				if err != nil {
-					println("Number of blocks not an int in START_MONITOR_FILE")
-					break
-				}
-				numParityBlocks, err := strconv.Atoi(res[3])
-				if err != nil {
-					println("Number of blocks not an int in START_MONITOR_FILE")
-					break
-				}
 
 				s.stateMux.Lock()
-				s.state.files[dataCID] = FileStats{strandCID, numDataBlocks,
-					make(map[uint]WatchedBlock), numParityBlocks,
+				s.state.files[dataCID] = FileStats{strandCID,
+					make(map[uint]WatchedBlock),
 					make(map[uint]WatchedBlock), 1.0, 1.0}
 				s.stateMux.Unlock()
 

@@ -21,12 +21,10 @@ type State struct {
 
 type FileStats struct {
 	StrandRootCID       string                `json:"strandRootCID"`
-	NumDataBlocks       int                   `json:"numDataBlocks"`
-	DataBlocksMissing   map[uint]WatchedBlock `json:"dataBlocksMissing"`
-	NumParityBlocks     int                   `json:"numParityBlocks"`
-	ParityBlocksMissing map[uint]WatchedBlock `json:"parityBlocksMissing"`
-	EstimatedBlockProb  float32               `json:"estimatedBlockProb"`
-	Health              float32               `json:"health"`
+	DataBlocksMissing   map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"`
+	ParityBlocksMissing map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
+	EstimatedBlockProb  float32               `json:"estimatedBlockProb,omitempty"`
+	Health              float32               `json:"health,omitempty"`
 }
 
 type WatchedBlock struct {
