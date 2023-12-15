@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"ipfs-alpha-entanglement-code/Server"
 	"ipfs-alpha-entanglement-code/entangler"
 	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 	"ipfs-alpha-entanglement-code/util"
@@ -127,7 +126,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	// Notify IPFS-Community Node that ROOT CIDs must be tracked (if requested)
 	if communityNodeAddress != "" {
 		log.Println("Trying to start tracking for rootCIDs")
-		requestStruct := Server.ForwardMonitoringRequest{
+		requestStruct := ForwardMonitoringRequest{
 			FileCID:        rootCID,
 			StrandRootCIDs: treeCids,
 		}
