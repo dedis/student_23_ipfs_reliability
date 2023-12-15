@@ -70,6 +70,8 @@ setInterval(async () => {
                 delete services[communityIP]
                 delete suspected[communityIP]
             }
+        } else {
+            suspected[communityIP] = 0
         }
 
     }
