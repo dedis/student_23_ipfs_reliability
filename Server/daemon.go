@@ -38,6 +38,7 @@ func Daemon(s *Server) {
 				s.stateMux.Lock()
 				s.state.files[dataCID] = FileStats{strandCID,
 					make(map[uint]WatchedBlock),
+					make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
 					make(map[uint]WatchedBlock), 1.0, 1.0}
 				s.stateMux.Unlock()
 
@@ -68,7 +69,13 @@ func Daemon(s *Server) {
 			// share view for each file
 			for file, stats := range s.state.files {
 				println("Sharing view for file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
+
+				// TODO: impl
+				// Check allocation list for fs.strandRootCID
+				//   send a view of the stats to each CommunityNode corresponding to a peer in the allocation list
 				s.ShareView(file, &stats)
+				// If not in the allocation list, stop tracking the file
+
 			}
 			s.stateMux.Unlock()
 

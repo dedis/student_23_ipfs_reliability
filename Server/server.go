@@ -18,6 +18,7 @@ func (s *Server) setUpServer() {
 	s.ginEngine = gin.Default()
 
 	// monitoring endpoints
+	s.ginEngine.POST("/forwardMonitoring", func(c *gin.Context) { forwardMonitoring(s, c) })
 	s.ginEngine.POST("/startMonitorFile", func(c *gin.Context) { startMonitorFile(s, c) })
 	s.ginEngine.POST("/stopMonitorFile", func(c *gin.Context) { stopMonitorFile(s, c) })
 	s.ginEngine.GET("/listMonitor", func(c *gin.Context) { listMonitor(s, c) })
@@ -125,6 +126,40 @@ func (s *Server) RunServer(port int, communityIP string, clusterIP string, clust
 	}
 
 	return 0
+}
+
+func forwardMonitoring(s *Server, c *gin.Context) {
+
+	/* adapt
+	for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+	for _, strandRoot := range treeCids { // move this at the server side
+
+		// TODO
+
+		peers, err := c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+		if err != nil {
+			log.Println("Couldn't start tracking for root CID: ", strandRoot)
+			return rootCID, metaCID, pinResult, nil
+		}
+		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
+		log.Println("Test: ", len(peers)) // TODO for now len(peers) = 0
+
+		params := url.Values{}
+		params.Add("dataRoot", rootCID)
+		params.Add("strandParityRoot", strandRoot)
+
+		for _, peer := range peers {
+
+			communityPeerAddress := s.converter.ClusterToCommunityIP(peer)
+
+			status, err := Server.PostJSON(communityPeerAddress+fmt.Sprintf("/startMonitorFile?%s", params.Encode()), nil)
+			if err != nil {
+				log.Println("Status: ", status)
+
+			}
+		}
+	}
+	*/
 }
 
 // startMonitorFile
