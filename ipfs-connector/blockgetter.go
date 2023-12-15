@@ -390,3 +390,28 @@ func (getter *IPFSGetter) GetParityCID(index int, strand int) string {
 
 	return targetNode.CID
 }
+
+// Function is 0-indexed
+// function that translates lattice index of a block to its CID
+func (getter *IPFSGetter) GetCIDForDataBlock(index int) string {
+	if target_node, ok := getter.NodeMap[index]; ok {
+		return target_node.CID
+	} else {
+		return ""
+	}
+}
+
+// Function is 0-indexed
+// function that translates lattice index of a parity block to its CID
+func (getter *IPFSGetter) GetCIDForParityBlock(index int, strand int) string {
+
+	if strand < 0 || strand >= len(getter.ParityIndexMap) {
+		return ""
+	}
+
+	if target_node, ok := getter.ParityIndexMap[strand][index]; !ok {
+		return ""
+	} else {
+		return target_node.CID
+	}
+}

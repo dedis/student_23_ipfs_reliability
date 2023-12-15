@@ -19,12 +19,16 @@ type Connector struct {
 }
 
 // CreateIPFSClusterConnector is the constructor of IPFSClusterConnector
-func CreateIPFSClusterConnector(port int) (*Connector, error) {
+func CreateIPFSClusterConnector(port int, host string) (*Connector, error) {
 	if port == 0 {
 		port = DefaultPort
 	}
 
-	conn := Connector{url: fmt.Sprintf("http://127.0.0.1:%d", port)}
+	if host == "" {
+		host = "localhost"
+	}
+
+	conn := Connector{url: fmt.Sprintf("http://%s:%d", host, port)}
 	conn.peers = make(map[string]string)
 	_, err := conn.PeerInfo()
 	if err != nil {

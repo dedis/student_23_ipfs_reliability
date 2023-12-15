@@ -151,6 +151,15 @@ type StrandRepairData struct {
 	EndTime   time.Time
 }
 
+type CommunityNode struct {
+	ClusterIP   string `json:"clusterIP"`
+	ClusterPort int    `json:"cluserPort"` // Note the potential typo in 'cluserPort'
+	IpfsIP      string `json:"ipfsIP"`
+	IpfsPort    int    `json:"ipfsPort"`
+}
+
+type CommunitiesMap map[string]CommunityNode
+
 type OperationType int
 
 const (
@@ -171,18 +180,25 @@ type Server struct {
 	operations      chan Operation
 	ctx             chan struct{}
 	client          *client.Client
-	address         string
 	repairThreshold float32
 
 	// data for collaborative repair
-	ipConverter IPConverter
-	collabOps   chan *CollaborativeRepairOperation
-	collabDone  chan *CollaborativeRepairDone
-	unitOps     chan *UnitRepairOperation
-	unitDone    chan *UnitRepairDone
-	strandOps   chan *StrandRepairOperation
+	// ipConverter IPConverter
+	collabOps  chan *CollaborativeRepairOperation
+	collabDone chan *CollaborativeRepairDone
+	unitOps    chan *UnitRepairOperation
+	unitDone   chan *UnitRepairDone
+	strandOps  chan *StrandRepairOperation
 
 	// data for stateful repair
 	collabData map[string]*CollaborativeRepairData // map from [file CID] to repair data
 	strandData map[string]*StrandRepairData        // map from [file CID + Strand] to repair data
+
+	//personal information
+	address          string //includes full address for community node include port
+	clusterIP        string //includes only the IP/hostname of the cluster node
+	clusterPort      int    //includes only the port of the cluster node
+	ipfsIP           string //includes only the IP/hostname of the IPFS node
+	ipfsPort         int    //includes only the port of the IPFS node
+	discoveryAddress string //includes the full address of the discovery server
 }

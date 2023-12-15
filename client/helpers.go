@@ -34,13 +34,13 @@ type Client struct {
 }
 
 // create client
-func NewClient() (client *Client, err error) {
+func NewClient(clusterHost string, clusterPort int, ipfsHost string, ipfsPort int) (client *Client, err error) {
 	client = &Client{}
-	err = client.InitIPFSConnector()
+	err = client.InitIPFSConnector(ipfsPort, ipfsHost)
 	if err != nil {
 		return nil, err
 	}
-	err = client.InitIPFSClusterConnector()
+	err = client.InitIPFSClusterConnector(clusterPort, clusterHost)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +49,8 @@ func NewClient() (client *Client, err error) {
 }
 
 // init ipfs connector for future usage
-func (c *Client) InitIPFSConnector() error {
-	conn, err := ipfsconnector.CreateIPFSConnector(0)
+func (c *Client) InitIPFSConnector(port int, host string) error {
+	conn, err := ipfsconnector.CreateIPFSConnector(port, host)
 	if err != nil {
 		return xerrors.Errorf("fail to connect to IPFS: %s", err)
 	}
@@ -60,8 +60,8 @@ func (c *Client) InitIPFSConnector() error {
 }
 
 // init ipfs cluster connector for future usage
-func (c *Client) InitIPFSClusterConnector() error {
-	conn, err := ipfscluster.CreateIPFSClusterConnector(0)
+func (c *Client) InitIPFSClusterConnector(port int, host string) error {
+	conn, err := ipfscluster.CreateIPFSClusterConnector(port, host)
 	if err != nil {
 		return xerrors.Errorf("fail to connect to IPFS Cluster: %s", err)
 	}

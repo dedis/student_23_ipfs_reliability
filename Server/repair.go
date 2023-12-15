@@ -64,21 +64,13 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	}
 
 	// if there are failed leaves, we need to get all peers available in the cluster
-	peers := s.client.IPFSClusterConnector.GetAllPeers()
+	_, _, peers, err := s.getAllPeers()
 
-	// create a list that converts peer names (from the value of each key) to a community IP using the IPConverter
-	peerIPs := make([]string, len(peers))
-	index := 0
-	for _, peer := range peers {
-		peerIPs[index], err = s.ipConverter.ClusterToCommunityIP(peer)
-		if err != nil {
-			util.LogPrintf("Error in converting cluster IP to community IP for peer %s - %s", peer, err)
-			s.collabData[op.FileCID].Status = FAILURE
-			s.collabData[op.FileCID].EndTime = time.Now()
-			return
-		}
-
-		index++
+	if err != nil {
+		util.LogPrintf("Error in getting all peers for file %s - %s", op.FileCID, err)
+		s.collabData[op.FileCID].Status = FAILURE
+		s.collabData[op.FileCID].EndTime = time.Now()
+		return
 	}
 
 	// find max number of peers to use for repair
@@ -88,9 +80,9 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	}
 
 	// shuffle the peerIPs list
-	for i := range peerIPs {
+	for i := range peers {
 		j := rand.Intn(i + 1)
-		peerIPs[i], peerIPs[j] = peerIPs[j], peerIPs[i]
+		peers[i], peers[j] = peers[j], peers[i]
 	}
 
 	// for this shuffled list, iterate over peers
@@ -125,14 +117,14 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	i := 0
 	for sentRequests < numPeers {
 		// send the request to the peer
-		status, err := PostJSON(peerIPs[i]+"/triggerUnitRepair", jsonRequests[i])
+		status, err := PostJSON(peers[i]+"/triggerUnitRepair", jsonRequests[i])
 
 		if err == nil && status == 200 {
 			// add the peer to the list of peers that have successfully started
 			// check if peer already exists in peers
-			if _, ok := s.collabData[op.FileCID].Peers[peerIPs[i]]; !ok {
-				s.collabData[op.FileCID].Peers[peerIPs[i]] = &CollabPeerInfo{
-					Name:            peerIPs[i],
+			if _, ok := s.collabData[op.FileCID].Peers[peers[i]]; !ok {
+				s.collabData[op.FileCID].Peers[peers[i]] = &CollabPeerInfo{
+					Name:            peers[i],
 					StartTime:       time.Now(),
 					Status:          PENDING,
 					AllocatedBlocks: make(map[int]bool),
@@ -141,7 +133,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 
 			// add the allocated blocks to the peer
 			for _, leaf := range requests[i].FailedIndices {
-				s.collabData[op.FileCID].Peers[peerIPs[i]].AllocatedBlocks[leaf] = false
+				s.collabData[op.FileCID].Peers[peers[i]].AllocatedBlocks[leaf] = false
 			}
 
 			sentRequests++
@@ -149,7 +141,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 
 		// Move in circular fashion as long as we haven't found numPeers peers
 		i++
-		if i == len(peerIPs) {
+		if i == len(peers) {
 			i = 0
 		}
 	}

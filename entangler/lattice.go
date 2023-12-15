@@ -58,6 +58,18 @@ func (l *Lattice) Init() {
 	})
 }
 
+// Return all parities that have been repaired
+func (l *Lattice) GetRepairedParities() (repairedParities []*Block) {
+	for _, parity := range l.ParityBlocks {
+		for _, block := range parity {
+			if block.IsRepaired() {
+				repairedParities = append(repairedParities, block)
+			}
+		}
+	}
+	return repairedParities
+}
+
 // GetAllData returns all data in the data blocks as a byte array
 func (l *Lattice) GetAllData() (data [][]byte, err error) {
 	for i := 0; i < l.ChunkNum; i++ {
@@ -259,6 +271,7 @@ func (l *Lattice) sequentialRepair(block *Block, rid uint, allowDepth uint) bool
 		}
 
 		if block.Recover(leftChunk, rightChunk) == nil {
+
 			return true
 		}
 	}

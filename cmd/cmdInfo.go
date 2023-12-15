@@ -28,7 +28,7 @@ type Command struct {
 func NewCommand() (command *Command, err error) {
 	command = &Command{}
 	command.initCmd()
-	cl, err := client.NewClient()
+	cl, err := client.NewClient("", 0, "", 0)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,13 @@ func (c *Command) initCmd() {
 
 func (c *Command) AddDaemonCmd() {
 	var port int
+	var communityIP string
+	var clusterIP string
+	var clusterPort int
+	var IpfsIP string
+	var IpfsPort int
+	var discovery string
+
 	daemonCmd := &cobra.Command{
 		Use:   "daemon",
 		Short: "Start the community node",
@@ -61,11 +68,16 @@ func (c *Command) AddDaemonCmd() {
 			util.EnableLogPrint()
 			util.EnableInfoPrint()
 
-			c.RunServer(port)
+			c.RunServer(port, communityIP, clusterIP, clusterPort, IpfsIP, IpfsPort, discovery)
 		},
 	}
 	daemonCmd.Flags().IntVarP(&port, "port", "p", 7070, "Set the port for corresponding community node")
-
+	daemonCmd.Flags().StringVarP(&communityIP, "community-ip", "ip", "localhost", "Sets the IP address of the community node")
+	daemonCmd.Flags().StringVarP(&clusterIP, "cluster-ip", "cip", "localhost", "Sets the IP address of the cluster node")
+	daemonCmd.Flags().IntVarP(&clusterPort, "cluster-port", "cp", 9094, "Sets the port of the cluster node")
+	daemonCmd.Flags().StringVarP(&IpfsIP, "ipfs-ip", "iip", "localhost", "Sets the IP address of the IPFS node")
+	daemonCmd.Flags().IntVarP(&IpfsPort, "ipfs-port", "ipp", 5001, "Sets the port of the IPFS node")
+	daemonCmd.Flags().StringVarP(&discovery, "discovery", "d", "http://localhost:3000", "Sets the discovery server address with port")
 	c.AddCommand(daemonCmd)
 }
 

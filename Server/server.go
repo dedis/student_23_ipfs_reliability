@@ -3,8 +3,9 @@ package Server
 import (
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
-	"ipfs-alpha-entanglement-code/docker"
 	"ipfs-alpha-entanglement-code/util"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -32,13 +33,16 @@ func (s *Server) setUpServer() {
 	s.ginEngine.POST("/reportUnitRepair", func(c *gin.Context) { reportUnitRepair(s, c) })
 	s.ginEngine.POST("/reportCollabRepair", func(c *gin.Context) { reportCollabRepair(s, c) })
 
+	s.ginEngine.GET("/health-check", func(c *gin.Context) { c.Status(200) })
+
 	// init state
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]FileStats)}
-	s.client = &client.Client{}
+	client, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
+	s.client = client
 	s.repairThreshold = 0.3 // FIXME user-set of global const
-	s.ipConverter = &docker.DockerClusterToCommunityConverter{}
+	// s.ipConverter = &docker.DockerClusterToCommunityConverter{}
 	s.collabOps = make(chan *CollaborativeRepairOperation)
 	s.collabDone = make(chan *CollaborativeRepairDone)
 	s.unitOps = make(chan *UnitRepairOperation)
@@ -48,21 +52,73 @@ func (s *Server) setUpServer() {
 	s.strandData = make(map[string]*StrandRepairData)
 }
 
+func (s *Server) AnnounceSelf() error {
+	// announce self to discovery server
+	// send an http post request to discovery server
+	/*
+			takes the following as parameters:
+
+			communityIP
+		    clusterIP
+		    clusterPort
+		    ipfsIP
+		    ipfsPort
+
+	*/
+
+	baseURL := fmt.Sprintf("%s/announce", s.discoveryAddress)
+
+	// Build the query parameters
+	params := url.Values{}
+	params.Add("communityIP", s.address)
+	params.Add("clusterIP", s.clusterIP)
+	params.Add("clusterPort", fmt.Sprintf("%d", s.clusterPort))
+	params.Add("ipfsIP", s.ipfsIP)
+	params.Add("ipfsPort", fmt.Sprintf("%d", s.ipfsPort))
+
+	// Construct the final URL with query parameters
+	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	// Send the GET request
+	resp, err := http.Get(fullURL)
+	if err != nil {
+		return fmt.Errorf("error announcing oneself: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("error announcing oneself: %v", err)
+	}
+
+	return nil
+}
+
 // RunServer
 // @Description: Run the server (blocking)
 // @param port: The port to listen on
-func (s *Server) RunServer(port int) int {
+func (s *Server) RunServer(port int, communityIP string, clusterIP string, clusterPort int, IpfsIP string, IpfsPort int, discovery string) int {
+	s.clusterIP = clusterIP
+	s.clusterPort = clusterPort
+	s.ipfsIP = IpfsIP
+	s.ipfsPort = IpfsPort
+	s.discoveryAddress = discovery
+
 	s.setUpServer()
 
-	// TODO: Update address to reflect actual address seen by others
-	s.address = fmt.Sprintf("localhost:%d", port)
+	s.address = fmt.Sprintf("%s:%d", communityIP, port)
 	util.LogPrintf("Server listening on %s", s.address)
+
+	// announce self to discovery server
+	err := s.AnnounceSelf()
+	if err != nil {
+		util.LogPrintf("Error announcing self: %v", err)
+		return 1
+	}
 
 	// Starting daemon
 	go Daemon(s)
 	defer close(s.ctx)
 
-	err := s.ginEngine.Run(fmt.Sprintf(":%d", port)) // blocking
+	err = s.ginEngine.Run(fmt.Sprintf(":%d", port)) // blocking
 	// listen and serve on 0.0.0.0 + port
 	if err != nil {
 		return 1

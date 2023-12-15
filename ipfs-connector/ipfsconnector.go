@@ -23,11 +23,16 @@ type IPFSConnector struct {
 var DefaultPort = 5001
 
 // CreateIPFSConnector creates a running IPFS node and returns a connector to it
-func CreateIPFSConnector(port int) (*IPFSConnector, error) {
+func CreateIPFSConnector(port int, host string) (*IPFSConnector, error) {
 	if port == 0 {
 		port = DefaultPort
 	}
-	return &IPFSConnector{sh.NewShell(fmt.Sprintf("localhost:%d", port))}, nil
+
+	if host == "" {
+		host = "localhost"
+	}
+
+	return &IPFSConnector{sh.NewShell(fmt.Sprintf("%s:%d", host, port))}, nil
 }
 
 // AddFile takes the file in the given path and writes it to IPFS network
