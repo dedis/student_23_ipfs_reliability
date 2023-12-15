@@ -19,11 +19,6 @@ type State struct {
 	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
 }
 
-type ForwardMonitoringRequest struct {
-	FileCID        string   `json:"fileCID"`
-	StrandRootCIDs []string `json:"strandRootCIDs"`
-}
-
 type FileStats struct {
 	StrandRootCID string `json:"strandRootCID"`
 	// TODO If want to exploit peer.region => have to save somewhere which peer store which blocks. Too much state?
