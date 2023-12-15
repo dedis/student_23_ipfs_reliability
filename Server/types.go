@@ -19,16 +19,24 @@ type State struct {
 	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
 }
 
+type ForwardMonitoringRequest struct {
+	FileCID        string   `json:"fileCID"`
+	StrandRootCIDs []string `json:"strandRootCIDs"`
+}
+
 type FileStats struct {
-	StrandRootCID       string                `json:"strandRootCID"`
-	DataBlocksMissing   map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"`
-	ParityBlocksMissing map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
-	EstimatedBlockProb  float32               `json:"estimatedBlockProb,omitempty"`
-	Health              float32               `json:"health,omitempty"`
+	StrandRootCID string `json:"strandRootCID"`
+	// TODO If want to exploit peer.region => have to save somewhere which peer store which blocks. Too much state?
+	DataBlocksMissing        map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"`
+	ParityBlocksMissing      map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
+	validDataBlocksHistory   map[uint]WatchedBlock
+	validParityBlocksHistory map[uint]WatchedBlock
+	EstimatedBlockProb       float32 `json:"estimatedBlockProb,omitempty"`
+	Health                   float32 `json:"health,omitempty"`
 }
 
 type WatchedBlock struct {
-	CID         string      `json:"blockCID"`
+	CID         string      `json:"blockCID"` // TODO check if every field is needed?
 	Peer        ClusterPeer `json:"hostPeer"`
 	Probability float32     `json:"prob"` // Presence probability (account for transient failures)
 }
