@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Server) getAllPeers() (map[string]string, map[string]CommunityNode, []string, error) {
-	url := fmt.Sprintf("%s/peers", s.discoveryAddress)
+	url := fmt.Sprintf("http://%s/peers", s.discoveryAddress)
 	resp, err := http.Get(url)
 
 	if err != nil {
@@ -26,6 +26,9 @@ func (s *Server) getAllPeers() (map[string]string, map[string]CommunityNode, []s
 	if err := json.Unmarshal(body, &nodes); err != nil {
 		return nil, nil, nil, err
 	}
+
+	// remove self from the list
+	delete(nodes, s.address)
 
 	clusterToCommunity := make(map[string]string)
 	// Get the list of peer names

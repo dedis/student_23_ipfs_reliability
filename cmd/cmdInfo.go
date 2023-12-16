@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"ipfs-alpha-entanglement-code/Server"
@@ -28,10 +27,10 @@ type Command struct {
 func NewCommand() (command *Command, err error) {
 	command = &Command{}
 	command.initCmd()
-	cl, err := client.NewClient("", 0, "", 0)
-	if err != nil {
-		return nil, err
-	}
+	cl, _ := client.NewClient("", 0, "", 0)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	command.Client = cl
 	command.Server = &Server.Server{}
 
@@ -72,11 +71,11 @@ func (c *Command) AddDaemonCmd() {
 		},
 	}
 	daemonCmd.Flags().IntVarP(&port, "port", "p", 7070, "Set the port for corresponding community node")
-	daemonCmd.Flags().StringVarP(&communityIP, "community-ip", "ip", "localhost", "Sets the IP address of the community node")
-	daemonCmd.Flags().StringVarP(&clusterIP, "cluster-ip", "cip", "localhost", "Sets the IP address of the cluster node")
-	daemonCmd.Flags().IntVarP(&clusterPort, "cluster-port", "cp", 9094, "Sets the port of the cluster node")
-	daemonCmd.Flags().StringVarP(&IpfsIP, "ipfs-ip", "iip", "localhost", "Sets the IP address of the IPFS node")
-	daemonCmd.Flags().IntVarP(&IpfsPort, "ipfs-port", "ipp", 5001, "Sets the port of the IPFS node")
+	daemonCmd.Flags().StringVarP(&communityIP, "community-ip", "i", "localhost", "Sets the IP address of the community node")
+	daemonCmd.Flags().StringVarP(&clusterIP, "cluster-ip", "c", "localhost", "Sets the IP address of the cluster node")
+	daemonCmd.Flags().IntVarP(&clusterPort, "cluster-port", "v", 9094, "Sets the port of the cluster node")
+	daemonCmd.Flags().StringVarP(&IpfsIP, "ipfs-ip", "j", "localhost", "Sets the IP address of the IPFS node")
+	daemonCmd.Flags().IntVarP(&IpfsPort, "ipfs-port", "b", 5001, "Sets the port of the IPFS node")
 	daemonCmd.Flags().StringVarP(&discovery, "discovery", "d", "http://localhost:3000", "Sets the discovery server address with port")
 	c.AddCommand(daemonCmd)
 }
@@ -132,8 +131,8 @@ type ErrorResponse struct {
 	Error   string `json:"error"`
 }
 
-func (c *Command) downloadFile(port, rootFileCID, metadataCID, path string, uploadRecoverData bool) (string, error) {
-	baseURL := fmt.Sprintf("http://0.0.0.0:%s/downloadFile", port)
+func (c *Command) downloadFile(communityAddress, rootFileCID, metadataCID, path string, uploadRecoverData bool, depth int) (string, error) {
+	baseURL := fmt.Sprintf("http://%s/downloadFile", communityAddress)
 
 	// Build the query parameters
 	params := url.Values{}
@@ -141,6 +140,7 @@ func (c *Command) downloadFile(port, rootFileCID, metadataCID, path string, uplo
 	params.Add("metadataCID", metadataCID)
 	params.Add("path", path)
 	params.Add("uploadRecoverData", fmt.Sprintf("%v", uploadRecoverData))
+	params.Add("depth", fmt.Sprintf("%d", depth))
 
 	// Construct the final URL with query parameters
 	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
@@ -161,17 +161,16 @@ func (c *Command) downloadFile(port, rootFileCID, metadataCID, path string, uplo
 	// Handle the response based on the status code
 	switch resp.StatusCode {
 	case 200:
-		var successResp SuccessResponse
-		if err := json.Unmarshal(body, &successResp); err != nil {
-			return "", fmt.Errorf("error decoding success response: %v", err)
+		// write file from []byte body to path
+		// write file
+		out, err := client.WriteFile(rootFileCID, path, body)
+		if err != nil {
+			return "", fmt.Errorf("error writing file: %v", err)
 		}
-		return successResp.Out, nil
+
+		return out, nil
 	case 400:
-		var errorResp ErrorResponse
-		if err := json.Unmarshal(body, &errorResp); err != nil {
-			return "", fmt.Errorf("error decoding error response: %v", err)
-		}
-		return "", fmt.Errorf("error response: %s", errorResp.Error)
+		return "", fmt.Errorf("error: %s", string(body))
 	default:
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -181,7 +180,8 @@ func (c *Command) downloadFile(port, rootFileCID, metadataCID, path string, uplo
 func (c *Command) AddDownloadCmd() {
 	var opt client.DownloadOption
 	var path string
-	var port string
+	var communityAddress string
+	var depth int
 	downloadCmd := &cobra.Command{
 		Use:   "download [cid] [path]",
 		Short: "Download a file from IPFS",
@@ -191,7 +191,7 @@ func (c *Command) AddDownloadCmd() {
 			util.EnableLogPrint()
 
 			// send get request to 0.0.0.0:port/downloadFile
-			out, err := c.downloadFile(port, args[0], opt.MetaCID, path, opt.UploadRecoverData)
+			out, err := c.downloadFile(communityAddress, args[0], opt.MetaCID, path, opt.UploadRecoverData, depth)
 			if err != nil {
 				log.Println("Error:", err)
 				os.Exit(1)
@@ -203,12 +203,14 @@ func (c *Command) AddDownloadCmd() {
 		"Provide output path to store the downloaded stuff")
 	downloadCmd.Flags().StringVarP(&opt.MetaCID, "metacid", "m",
 		"", "Provide metafile cid for recovery")
-	downloadCmd.Flags().StringVarP(&port, "port", "p", "7070", "Set the port for corresponding community node")
+	downloadCmd.Flags().StringVarP(&communityAddress, "address", "a", "localhost:7070", "Set the complete address (ip:port) for corresponding community node")
 
 	downloadCmd.Flags().BoolVarP(&opt.UploadRecoverData, "upload-recovery",
 		"u", true, "Allow upload recovered chunk back to IPFS network")
 	downloadCmd.Flags().IntSliceVar(&opt.DataFilter, "missing-data",
 		[]int{}, "Specify the missing data blocks for testing")
+
+	downloadCmd.Flags().IntVarP(&depth, "depth", "d", 1, "Set the depth for repairing the missing data (1 no repair)")
 
 	c.AddCommand(downloadCmd)
 }

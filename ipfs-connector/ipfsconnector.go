@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"ipfs-alpha-entanglement-code/entangler"
 	"ipfs-alpha-entanglement-code/util"
@@ -32,7 +33,13 @@ func CreateIPFSConnector(port int, host string) (*IPFSConnector, error) {
 		host = "localhost"
 	}
 
-	return &IPFSConnector{sh.NewShell(fmt.Sprintf("%s:%d", host, port))}, nil
+	connector := &IPFSConnector{sh.NewShell(fmt.Sprintf("%s:%d", host, port))}
+
+	return connector, nil
+}
+
+func (c *IPFSConnector) SetTimeout(duration time.Duration) {
+	c.shell.SetTimeout(duration)
 }
 
 // AddFile takes the file in the given path and writes it to IPFS network

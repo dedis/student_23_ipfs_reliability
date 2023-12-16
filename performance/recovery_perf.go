@@ -176,7 +176,7 @@ var RecoverWithFilter = func(fileinfo FileInfo, missNum int, iteration int, nbNo
 	avgResult := PerfResult{}
 
 	// create IPFS connector
-	conn, err := ipfsconnector.CreateIPFSConnector(0)
+	conn, err := ipfsconnector.CreateIPFSConnector(0, "")
 	if err != nil {
 		return PerfResult{Err: err}
 	}

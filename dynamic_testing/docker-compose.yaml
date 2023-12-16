@@ -1,0 +1,534 @@
+version: '3.8'
+
+
+# This is an example docker-compose file to quickly test an IPFS Cluster
+# with multiple peers on a contained environment.
+
+# It runs 3 cluster peers (cluster0, cluster1...) attached to go-ipfs daemons
+# (ipfs0, ipfs1...) using the CRDT consensus component. Cluster peers
+# autodiscover themselves using mDNS on the docker internal network.
+#
+# To interact with the cluster use "ipfs-cluster-ctl" (the cluster0 API port is
+# exposed to the locahost. You can also "docker exec -ti cluster0 sh" and run
+# it from the container. "ipfs-cluster-ctl peers ls" should show all 3 peers a few
+# seconds after start.
+#
+# For persistence, a "compose" folder is created and used to store configurations
+# and states. This can be used to edit configurations in subsequent runs. It looks
+# as follows:
+#
+# compose/
+# |-- cluster0
+# |-- cluster1
+# |-- ...
+# |-- ipfs0
+# |-- ipfs1
+# |-- ...
+#
+# During the first start, default configurations are created for all peers.
+
+services:
+##################################################################################
+## Discovery Service #############################################################
+##################################################################################
+
+  discovery:
+    container_name: discovery
+    image: ahmadelrouby/ipfs-discovery:latest
+    environment:
+      PORT: 3000 # refers to the port the discovery service will listen on
+      HEALH_INTERVAL: 10000 # refers to how often the discovery service will check the health of the peers
+      MAX_TRIES: 3 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
+    ports:
+      - "3000:3000"
+
+
+##################################################################################
+## Cluster PEER 0 ################################################################
+##################################################################################
+
+
+  ipfs0:
+    container_name: ipfs0
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4001:4001"
+      - "127.0.0.1:5001:5001"
+      - "127.0.0.1:8080:8080"
+
+
+  cluster0:
+    container_name: cluster0
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs0
+    environment:
+      CLUSTER_PEERNAME: cluster0
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs0/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9094:9094"
+
+  community0:
+    container_name: community0
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster0
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community0
+      CLUSTER_IP: cluster0
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs0
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7070:7070"
+    
+
+##################################################################################
+## Cluster PEER 1 ################################################################
+##################################################################################
+
+
+  ipfs1:
+    container_name: ipfs1
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4002:4001"
+      - "127.0.0.1:5002:5001"
+      - "127.0.0.1:8081:8080"
+
+
+  cluster1:
+    container_name: cluster1
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs1
+    environment:
+      CLUSTER_PEERNAME: cluster1
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs1/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9095:9094"
+
+  community1:
+    container_name: community1
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster1
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community1
+      CLUSTER_IP: cluster1
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs1
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7071:7070"
+    
+
+##################################################################################
+## Cluster PEER 2 ################################################################
+##################################################################################
+
+
+  ipfs2:
+    container_name: ipfs2
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4003:4001"
+      - "127.0.0.1:5003:5001"
+      - "127.0.0.1:8082:8080"
+
+
+  cluster2:
+    container_name: cluster2
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs2
+    environment:
+      CLUSTER_PEERNAME: cluster2
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs2/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9096:9094"
+
+  community2:
+    container_name: community2
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster2
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community2
+      CLUSTER_IP: cluster2
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs2
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7072:7070"
+    
+
+##################################################################################
+## Cluster PEER 3 ################################################################
+##################################################################################
+
+
+  ipfs3:
+    container_name: ipfs3
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4004:4001"
+      - "127.0.0.1:5004:5001"
+      - "127.0.0.1:8083:8080"
+
+
+  cluster3:
+    container_name: cluster3
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs3
+    environment:
+      CLUSTER_PEERNAME: cluster3
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs3/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9097:9094"
+
+  community3:
+    container_name: community3
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster3
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community3
+      CLUSTER_IP: cluster3
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs3
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7073:7070"
+    
+
+##################################################################################
+## Cluster PEER 4 ################################################################
+##################################################################################
+
+
+  ipfs4:
+    container_name: ipfs4
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4005:4001"
+      - "127.0.0.1:5005:5001"
+      - "127.0.0.1:8084:8080"
+
+
+  cluster4:
+    container_name: cluster4
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs4
+    environment:
+      CLUSTER_PEERNAME: cluster4
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs4/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9098:9094"
+
+  community4:
+    container_name: community4
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster4
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community4
+      CLUSTER_IP: cluster4
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs4
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7074:7070"
+    
+
+##################################################################################
+## Cluster PEER 5 ################################################################
+##################################################################################
+
+
+  ipfs5:
+    container_name: ipfs5
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4006:4001"
+      - "127.0.0.1:5006:5001"
+      - "127.0.0.1:8085:8080"
+
+
+  cluster5:
+    container_name: cluster5
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs5
+    environment:
+      CLUSTER_PEERNAME: cluster5
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs5/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9099:9094"
+
+  community5:
+    container_name: community5
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster5
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community5
+      CLUSTER_IP: cluster5
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs5
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7075:7070"
+    
+
+##################################################################################
+## Cluster PEER 6 ################################################################
+##################################################################################
+
+
+  ipfs6:
+    container_name: ipfs6
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4007:4001"
+      - "127.0.0.1:5007:5001"
+      - "127.0.0.1:8086:8080"
+
+
+  cluster6:
+    container_name: cluster6
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs6
+    environment:
+      CLUSTER_PEERNAME: cluster6
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs6/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9100:9094"
+
+  community6:
+    container_name: community6
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster6
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community6
+      CLUSTER_IP: cluster6
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs6
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7076:7070"
+    
+
+##################################################################################
+## Cluster PEER 7 ################################################################
+##################################################################################
+
+
+  ipfs7:
+    container_name: ipfs7
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4008:4001"
+      - "127.0.0.1:5008:5001"
+      - "127.0.0.1:8087:8080"
+
+
+  cluster7:
+    container_name: cluster7
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs7
+    environment:
+      CLUSTER_PEERNAME: cluster7
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs7/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9101:9094"
+
+  community7:
+    container_name: community7
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster7
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community7
+      CLUSTER_IP: cluster7
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs7
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7077:7070"
+    
+
+##################################################################################
+## Cluster PEER 8 ################################################################
+##################################################################################
+
+
+  ipfs8:
+    container_name: ipfs8
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4009:4001"
+      - "127.0.0.1:5009:5001"
+      - "127.0.0.1:8088:8080"
+
+
+  cluster8:
+    container_name: cluster8
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs8
+    environment:
+      CLUSTER_PEERNAME: cluster8
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs8/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9102:9094"
+
+  community8:
+    container_name: community8
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster8
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community8
+      CLUSTER_IP: cluster8
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs8
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7078:7070"
+    
+
+##################################################################################
+## Cluster PEER 9 ################################################################
+##################################################################################
+
+
+  ipfs9:
+    container_name: ipfs9
+    image: ipfs/go-ipfs:latest
+    depends_on:
+      - discovery
+    ports:
+      - "4010:4001"
+      - "127.0.0.1:5010:5001"
+      - "127.0.0.1:8089:8080"
+
+
+  cluster9:
+    container_name: cluster9
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs9
+    environment:
+      CLUSTER_PEERNAME: cluster9
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs9/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*'
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
+      CLUSTER_MONITORPINGINTERVAL: 2s
+    ports:
+      - "127.0.0.1:9103:9094"
+
+  community9:
+    container_name: community9
+    image: ahmadelrouby/ipfs-community:latest
+    depends_on:
+      - cluster9
+      - discovery
+    environment:
+      PORT: 7070
+      COMMUNITY_IP: community9
+      CLUSTER_IP: cluster9
+      CLUSTER_PORT: 9094
+      IPFS_IP: ipfs9
+      IPFS_PORT: 5001
+      DISCOVERY_ADDRESS: discovery:3000
+    ports:
+      - "7079:7070"
+    

@@ -1,13 +1,13 @@
 package Server
 
 import (
+	"encoding/json"
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/util"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,27 +66,30 @@ func (s *Server) AnnounceSelf() error {
 
 	*/
 
-	baseURL := fmt.Sprintf("%s/announce", s.discoveryAddress)
+	baseURL := fmt.Sprintf("http://%s/announce", s.discoveryAddress)
 
-	// Build the query parameters
-	params := url.Values{}
-	params.Add("communityIP", s.address)
-	params.Add("clusterIP", s.clusterIP)
-	params.Add("clusterPort", fmt.Sprintf("%d", s.clusterPort))
-	params.Add("ipfsIP", s.ipfsIP)
-	params.Add("ipfsPort", fmt.Sprintf("%d", s.ipfsPort))
+	body := &CommunityNodeAnnouncement{
+		CommunityIP: s.address,
+		ClusterIP:   s.clusterIP,
+		ClusterPort: s.clusterPort,
+		IpfsIP:      s.ipfsIP,
+		IpfsPort:    s.ipfsPort,
+	}
 
-	// Construct the final URL with query parameters
-	fullURL := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+	jsonResponse, err := json.Marshal(body)
+	if err != nil {
+		util.LogPrintf("Error in marshalling body for community node announcement %s - %s", s.address, err)
+	}
 
-	// Send the GET request
-	resp, err := http.Get(fullURL)
+	// send the response back to the origin
+	status, err := PostJSON(baseURL, jsonResponse)
+
 	if err != nil {
 		return fmt.Errorf("error announcing oneself: %v", err)
 	}
 
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("error announcing oneself: %v", err)
+	if status != 200 {
+		return fmt.Errorf("error announcing oneself, status not 200 but: %d", status)
 	}
 
 	return nil
@@ -219,18 +222,26 @@ func downloadFile(s *Server, c *gin.Context) {
 	metadataCID := c.Query("metadataCID")
 	path := c.Query("path")
 	uploadRecoverData := c.Query("uploadRecoverData")
+	depth, err := strconv.Atoi(c.Query("depth"))
+	if err != nil {
+		depth = 1
+	}
 
 	options := client.DownloadOption{
 		UploadRecoverData: uploadRecoverData == "true",
 		MetaCID:           metadataCID,
 	}
 
-	out, err := s.client.Download(rootFileCID, path, options)
+	s.client.SetTimeout(2 * time.Second)
+	defer s.client.SetTimeout(0)
+	data, err := s.client.Download(rootFileCID, path, options, uint(depth))
 	if err != nil {
-		c.JSON(400, gin.H{"message": "Download failed", "error": err.Error()})
+		c.Header("Content-Disposition", "attachment; filename="+path)
+		c.Data(400, "application/octet-stream", []byte(err.Error()))
 		return
 	} else {
-		c.JSON(200, gin.H{"message": "Downloaded", "out": out})
+		c.Header("Content-Disposition", "attachment; filename="+path)
+		c.Data(200, "application/octet-stream", data)
 	}
 }
 

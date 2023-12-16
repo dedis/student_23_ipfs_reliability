@@ -17,29 +17,29 @@ type DownloadOption struct {
 }
 
 // Download download the original file, repair it if metadata is provided
-func (c *Client) Download(rootCID string, path string, option DownloadOption) (out string, err error) {
+func (c *Client) Download(rootCID string, path string, option DownloadOption, depth uint) (data []byte, err error) {
 	// err = c.InitIPFSConnector()
 	// if err != nil {
 	// 	return "", err
 	// }
 
-	/* direct downloading if no metafile provided */
-	if len(option.MetaCID) == 0 {
-		return c.directDownload(rootCID, path)
+	/* direct downloading if no metafile provided or depth is provided as 1 */
+	if len(option.MetaCID) == 0 || depth <= 1 {
+		return c.directDownload(rootCID)
 	}
-	return c.metaDownload(rootCID, path, option)
+	return c.metaDownload(rootCID, option, depth)
 }
 
 // directDownload interacts directly with IPFS. It fails when any data is missing
-func (c *Client) directDownload(rootCID string, path string) (out string, err error) {
+func (c *Client) directDownload(rootCID string) (data []byte, err error) {
 	// try to down original file using given rootCID (i.e. no metafile)
-	err = c.GetFile(rootCID, path)
+	data, err = c.GetFileToMem(rootCID)
 	if err != nil {
-		return "", xerrors.Errorf("fail to download original file: %s", err)
+		return nil, xerrors.Errorf("fail to download original file: %s", err)
 	}
 	util.LogPrintf("Finish downloading file (no recovery)")
 
-	return "", nil
+	return data, nil
 }
 
 // downloadAndRecover interacts with IPFS through lattice, It launches recovery if any data is missing
@@ -100,18 +100,18 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 }
 
 // metaDownload download metadata for recovery usage
-func (c *Client) metaDownload(rootCID string, path string, option DownloadOption) (out string, err error) {
+func (c *Client) metaDownload(rootCID string, option DownloadOption, depth uint) (data []byte, err error) {
 	/* download metafile */
 	metaData, err := c.GetMetaData(option.MetaCID)
 	if err != nil {
-		return "", xerrors.Errorf("fail to download metaData: %s", err)
+		return nil, xerrors.Errorf("fail to download metaData: %s", err)
 	}
 
 	// Construct empty tree
 	merkleTree, child_parent_index_map, index_node_map, err := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
 
 	if err != nil {
-		return "", xerrors.Errorf("fail to construct tree: %s", err)
+		return nil, xerrors.Errorf("fail to construct tree: %s", err)
 	}
 
 	merkleTree.CID = metaData.OriginalFileCID
@@ -142,18 +142,24 @@ func (c *Client) metaDownload(rootCID string, path string, option DownloadOption
 	}
 
 	// create lattice
-	lattice := entangler.NewLattice(metaData.Alpha, metaData.S, metaData.P, metaData.NumBlocks, getter, 2)
+	lattice := entangler.NewLattice(metaData.Alpha, metaData.S, metaData.P, metaData.NumBlocks, getter, depth)
 	lattice.Init()
 
 	/* download & recover file from IPFS */
 	data, repaired, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree)
 	if errDownload != nil {
 		err = errDownload
-		return
+		return nil, xerrors.Errorf("fail to download and recover file: %s", err)
+	}
+
+	if repaired {
+		util.LogPrintf("Finish downloading file (recovered)")
+	} else {
+		util.LogPrintf("Finish downloading file (no recovery)")
 	}
 
 	/* write to file in the given path */
-	return writeFile(rootCID, path, data, repaired)
+	return data, nil
 }
 
 // dataReupload re-uploads the recovered data back to IPFS
@@ -187,7 +193,7 @@ func (c *Client) dataReuploadNoCheck(chunk []byte, allow bool) error {
 }
 
 // writeFile writes the recovered data to the file at the output path
-func writeFile(rootCID string, path string, data []byte, repaired bool) (out string, err error) {
+func WriteFile(rootCID string, path string, data []byte) (out string, err error) {
 	if len(path) == 0 {
 		out = rootCID
 	} else {
@@ -195,12 +201,6 @@ func writeFile(rootCID string, path string, data []byte, repaired bool) (out str
 	}
 
 	err = os.WriteFile(out, data, 0600)
-	if err == nil {
-		if repaired {
-			util.LogPrintf("Finish downloading file (recovered)")
-		} else {
-			util.LogPrintf("Finish downloading file (no recovery)")
-		}
-	}
+
 	return out, err
 }

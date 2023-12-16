@@ -158,6 +158,14 @@ type CommunityNode struct {
 	IpfsPort    int    `json:"ipfsPort"`
 }
 
+type CommunityNodeAnnouncement struct {
+	CommunityIP string `json:"communityIP"`
+	ClusterIP   string `json:"clusterIP"`
+	ClusterPort int    `json:"clusterPort"`
+	IpfsIP      string `json:"ipfsIP"`
+	IpfsPort    int    `json:"ipfsPort"`
+}
+
 type CommunitiesMap map[string]CommunityNode
 
 type OperationType int

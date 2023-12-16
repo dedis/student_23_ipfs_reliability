@@ -119,7 +119,7 @@ var RepRecoverWithFilter = func(fileinfo FileInfo, missNum int, repFactor int, i
 	avgResult := PerfResult{}
 
 	// create IPFS connector
-	conn, err := ipfsconnector.CreateIPFSConnector(0)
+	conn, err := ipfsconnector.CreateIPFSConnector(0, "")
 	if err != nil {
 		return PerfResult{Err: err}
 	}

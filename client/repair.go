@@ -192,7 +192,8 @@ func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (
 
 func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth uint) (leafIndices []int, err error) {
 
-	_, getter, lattice, root, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	util.LogPrintf("Retrieving failed leaves for root %s, metadata %s, depth %d", rootCID, metadataCID, depth)
+	_, _, lattice, root, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
 	leafIndices = make([]int, 0)
 
 	if err != nil {
@@ -203,6 +204,7 @@ func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth 
 	var walker func(*ipfsconnector.EmptyTreeNode) error
 	walker = func(node *ipfsconnector.EmptyTreeNode) (err error) {
 
+		util.LogPrintf("Retrieving node %d, that has %d children", node.LatticeIdx+1, len(node.Children))
 		// if node is a leaf, check if it's available
 		// if not, add it to the list of leaves to be repaired
 		if len(node.Children) == 0 {
@@ -255,22 +257,30 @@ func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth 
 
 	err = walker(root)
 
-	// Reupload any parities that were repaired
-	//fetch all parities
-	parities := lattice.GetRepairedParities()
-	for _, parity := range parities {
-		blockCID := getter.GetCIDForParityBlock(parity.Strand, parity.Index-1)
-		chunk, err := parity.GetData()
-		if err != nil {
-			util.LogPrintf("Error getting parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
-			continue
-		}
-		chunk = bytes.Trim(chunk, "\x00")
-		err = c.dataReupload(chunk, blockCID, true)
-		if err != nil {
-			util.LogPrintf("Error reuploading parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
-		}
-	}
+	util.LogPrintf("Retrieved %d failed leaves", len(leafIndices))
+
+	// Actually it's not quite right to directly upload parities here
+	// Because these original parities are not the same as the uploaded ones
+	// the uploaded ones are shifted and actually are contained in the tree
+	// we will actually not fix parities here. we'll stick to repairing the data
+	// and once there's enough failure in a strand we attempt to repair the whole strand
+
+	// // Reupload any parities that were repaired
+	// //fetch all parities
+	// parities := lattice.GetRepairedParities()
+	// for _, parity := range parities {
+	// 	blockCID := getter.GetCIDForParityBlock(parity.Strand, parity.Index-1)
+	// 	chunk, err := parity.GetData()
+	// 	if err != nil {
+	// 		util.LogPrintf("Error getting parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
+	// 		continue
+	// 	}
+	// 	chunk = bytes.Trim(chunk, "\x00")
+	// 	err = c.dataReupload(chunk, blockCID, true)
+	// 	if err != nil {
+	// 		util.LogPrintf("Error reuploading parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
+	// 	}
+	// }
 
 	return leafIndices, err
 }
@@ -281,7 +291,7 @@ func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth 
 
 func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth uint, leafIndices []int) (result map[int]bool, err error) {
 
-	_, getter, lattice, _, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	_, _, lattice, _, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
 	result = make(map[int]bool)
 	for _, index := range leafIndices {
 		result[index] = false
@@ -304,22 +314,28 @@ func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth ui
 
 	}
 
-	// Reupload any parities that were repaired
-	//fetch all parities
-	parities := lattice.GetRepairedParities()
-	for _, parity := range parities {
-		blockCID := getter.GetCIDForParityBlock(parity.Strand, parity.Index-1)
-		chunk, err := parity.GetData()
-		if err != nil {
-			util.LogPrintf("Error getting parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
-			continue
-		}
-		chunk = bytes.Trim(chunk, "\x00")
-		err = c.dataReupload(chunk, blockCID, true)
-		if err != nil {
-			util.LogPrintf("Error reuploading parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
-		}
-	}
+	// Actually it's not quite right to directly upload parities here
+	// Because these original parities are not the same as the uploaded ones
+	// the uploaded ones are shifted and actually are contained in the tree
+	// we will actually not fix parities here. we'll stick to repairing the data
+	// and once there's enough failure in a strand we attempt to repair the whole strand
+
+	// // Reupload any parities that were repaired
+	// //fetch all parities
+	// parities := lattice.GetRepairedParities()
+	// for _, parity := range parities {
+	// 	blockCID := getter.GetCIDForParityBlock(parity.Strand, parity.Index-1)
+	// 	chunk, err := parity.GetData()
+	// 	if err != nil {
+	// 		util.LogPrintf("Error getting parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
+	// 		continue
+	// 	}
+	// 	chunk = bytes.Trim(chunk, "\x00")
+	// 	err = c.dataReupload(chunk, blockCID, true)
+	// 	if err != nil {
+	// 		util.LogPrintf("Error reuploading parity data for strand %d, index %d: %s", parity.Strand, parity.Index, err)
+	// 	}
+	// }
 
 	return result, nil
 }

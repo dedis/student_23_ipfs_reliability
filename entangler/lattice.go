@@ -260,12 +260,12 @@ func (l *Lattice) sequentialRepair(block *Block, rid uint, allowDepth uint) bool
 			mypair.Left.Index, mypair.Left.IsParity, mypair.Left.Strand,
 			mypair.Right.Index, mypair.Right.IsParity, mypair.Right.Strand)
 
-		leftChunk, RepairErr := l.getDataFromBlockSequential(mypair.Left, rid, allowDepth-1)
+		leftChunk, RepairErr := l.getDataFromBlockSequential(mypair.Left, rid, allowDepth)
 		if RepairErr != nil {
 			continue
 		}
 
-		rightChunk, RepairErr := l.getDataFromBlockSequential(mypair.Right, rid, allowDepth-1)
+		rightChunk, RepairErr := l.getDataFromBlockSequential(mypair.Right, rid, allowDepth)
 		if RepairErr != nil {
 			continue
 		}
@@ -312,7 +312,7 @@ func (l *Lattice) sequentialRecoverHelper(block *Block, rid uint, allowDepth uin
 	printRecoverStatus(false, DownloadFail, block)
 
 	// repair data
-	success := l.sequentialRepair(block, rid, allowDepth)
+	success := l.sequentialRepair(block, rid, allowDepth-1)
 	if success {
 		repairSuccess = true
 		printRecoverStatus(false, RepairSuccess, block)

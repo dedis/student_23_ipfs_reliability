@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/util"
 	"math/rand"
 	"net/http"
@@ -27,13 +28,31 @@ func PostJSON(url string, body []byte) (status int, err error) {
 	return resp.StatusCode, nil
 }
 
+func (s *Server) RefreshClient() {
+
+	client, err := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
+
+	if err != nil {
+		util.LogPrintf("Error in creating client - %s", err)
+	}
+
+	s.client = client
+}
+
 // function that takes in a CollaborativeRepairOperationRequest and starts the repair process
 func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
+	s.RefreshClient()
+	s.client.IPFSConnector.SetTimeout(100 * time.Millisecond)
+	defer s.client.IPFSConnector.SetTimeout(0)
+
+	util.LogPrintf("Starting collaborative repair for file %s", op.FileCID)
 
 	// check if a repair is already in progress for this file in collabData
 	if _, ok := s.collabData[op.FileCID]; ok && s.collabData[op.FileCID].Status == PENDING {
 		return
 	}
+
+	util.LogPrintf("No repair in progress for file %s, starting new repair", op.FileCID)
 
 	// create a new entry in collabData
 	s.collabData[op.FileCID] = &CollaborativeRepairData{
@@ -43,7 +62,10 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		StartTime: time.Now(),
 		Depth:     op.Depth,
 		Origin:    op.Origin,
+		Peers:     make(map[string]*CollabPeerInfo),
 	}
+
+	util.LogPrintf("Created new entry in collabData for file %s", op.FileCID)
 
 	// first repair the intermediate nodes of the tree
 	leaves, err := s.client.RetrieveFailedLeaves(op.FileCID, op.MetaCID, op.Depth)
@@ -54,6 +76,8 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		s.collabData[op.FileCID].EndTime = time.Now()
 		return
 	}
+
+	util.LogPrintf("Retrieved %d failed leaves for file %s", len(leaves), op.FileCID)
 
 	// if there are no failed leaves, then the repair is done
 	if len(leaves) == 0 {
@@ -73,11 +97,18 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		return
 	}
 
+	util.LogPrintf("Retrieved %d peers for file %s", len(peers), op.FileCID)
+
 	// find max number of peers to use for repair
-	numPeers := len(peers)
+	numPeers := op.NumPeers
+	if len(peers) < numPeers {
+		numPeers = len(peers)
+	}
 	if len(leaves) < numPeers {
 		numPeers = len(leaves)
 	}
+
+	util.LogPrintf("Using %d peers for file %s", numPeers, op.FileCID)
 
 	// shuffle the peerIPs list
 	for i := range peers {
@@ -94,6 +125,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	// if the peer sends back status 400, then retry the request twice before moving on to the next peer
 
 	// prepare the requests in advance
+	leavesPerPeer := len(leaves) / numPeers
 	requests := make([]*UnitRepairOperationRequest, numPeers)
 	jsonRequests := make([][]byte, numPeers)
 	for i := 0; i < numPeers; i++ {
@@ -102,7 +134,10 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 			MetaCID:       op.MetaCID,
 			Depth:         op.Depth,
 			Origin:        s.address,
-			FailedIndices: leaves[i*(len(leaves)/numPeers) : (i+1)*(len(leaves)/numPeers)],
+			FailedIndices: leaves[i*leavesPerPeer : (i+1)*leavesPerPeer],
+		}
+		if i == numPeers-1 {
+			requests[i].FailedIndices = leaves[i*leavesPerPeer:]
 		}
 		jsonRequests[i], err = json.Marshal(requests[i])
 		if err != nil {
@@ -117,7 +152,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	i := 0
 	for sentRequests < numPeers {
 		// send the request to the peer
-		status, err := PostJSON(peers[i]+"/triggerUnitRepair", jsonRequests[i])
+		status, err := PostJSON("http://"+peers[i]+"/triggerUnitRepair", jsonRequests[i])
 
 		if err == nil && status == 200 {
 			// add the peer to the list of peers that have successfully started
@@ -131,6 +166,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 				}
 			}
 
+			util.LogPrintf("Successfully sent request to peer %s for file %s with %d leaves", peers[i], op.FileCID, len(requests[i].FailedIndices))
 			// add the allocated blocks to the peer
 			for _, leaf := range requests[i].FailedIndices {
 				s.collabData[op.FileCID].Peers[peers[i]].AllocatedBlocks[leaf] = false
@@ -153,14 +189,24 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 
 // function that takes in a UnitRepairOperation and starts the repair process
 func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
+	s.RefreshClient()
+	s.client.IPFSConnector.SetTimeout(100 * time.Millisecond)
+	defer s.client.IPFSConnector.SetTimeout(0)
+
 	// get the failedIndices from the request
 	// trigger client.RepairFailedLeaves
 	// return the result from each of the failedIndices
 
+	util.LogPrintf("Starting unit repair for file %s, with depth %d and %d failed leaves", op.FileCID, op.Depth, len(op.FailedIndices))
 	res, err := s.client.RepairFailedLeaves(op.FileCID, op.MetaCID, op.Depth, op.FailedIndices)
 
 	if err != nil {
 		util.LogPrintf("Error in repairing failed leaves for file %s - %s", op.FileCID, err)
+	}
+
+	util.LogPrintf("Finished unit repair for file %s", op.FileCID)
+	for i, r := range res {
+		util.LogPrintf("Repair result for leaf %d: %t", i, r)
 	}
 
 	// send back the result to the origin
@@ -171,6 +217,8 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 		RepairStatus: res,
 	}
 
+	util.LogPrintf("Sending back response for file %s to %s", op.FileCID, op.Origin)
+
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		util.LogPrintf("Error in marshalling response for file %s - %s", op.FileCID, err)
@@ -178,7 +226,7 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 	}
 
 	// send the response back to the origin
-	PostJSON(op.Origin+"/reportUnitRepair", jsonResponse)
+	PostJSON("http://"+op.Origin+"/reportUnitRepair", jsonResponse)
 }
 
 // function that takes in *UnitRepairDone, updates its corresponding entry in collabData
@@ -186,11 +234,15 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 
 func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 
+	util.LogPrintf("Reporting unit repair for file %s", op.FileCID)
+
 	// check if entry exists in collabData
 	if _, ok := s.collabData[op.FileCID]; !ok {
 		util.LogPrintf("Error in reporting unit repair for file %s - entry does not exist in collabData", op.FileCID)
 		return
 	}
+
+	util.LogPrintf("Entry exists in collabData for file %s", op.FileCID)
 
 	// check if peer exists in collabData
 	if _, ok := s.collabData[op.FileCID].Peers[op.Origin]; !ok {
@@ -206,14 +258,20 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 	// update the entry in collabData
 	s.collabData[op.FileCID].Peers[op.Origin].EndTime = time.Now()
 
+	util.LogPrintf("Peer %s finished unit repair for file %s with total time of %s", op.Origin, op.FileCID, s.collabData[op.FileCID].Peers[op.Origin].EndTime.Sub(s.collabData[op.FileCID].Peers[op.Origin].StartTime).String())
+
+	repaired := 0
 	success := true
 	// check if all leaves have been repaired
 	for leaf, status := range op.RepairStatus {
 		success = success && status
 		if status {
 			s.collabData[op.FileCID].Peers[op.Origin].AllocatedBlocks[leaf] = true
+			repaired++
 		}
 	}
+
+	util.LogPrintf("Peer %s repaired %d/%d leaves for file %s", op.Origin, repaired, len(op.RepairStatus), op.FileCID)
 
 	if success {
 		s.collabData[op.FileCID].Peers[op.Origin].Status = SUCCESS
@@ -238,6 +296,8 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 			s.collabData[op.FileCID].Status = FAILURE
 		}
 
+		util.LogPrintf("All peers finished unit repair for file %s with total time of %s", op.FileCID, s.collabData[op.FileCID].EndTime.Sub(s.collabData[op.FileCID].StartTime).String())
+
 		// check if there's origin for this file
 
 		if s.collabData[op.FileCID].Origin == "" {
@@ -260,7 +320,7 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 		}
 
 		// send the response back to the origin
-		PostJSON(s.collabData[op.FileCID].Origin+"/reportCollabRepair", jsonResponse)
+		PostJSON("http://"+s.collabData[op.FileCID].Origin+"/reportCollabRepair", jsonResponse)
 
 	}
 
@@ -268,6 +328,9 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 
 // function that takes in a StrandRepairOperation and starts the repair process
 func (s *Server) StartStrandRepair(op *StrandRepairOperation) {
+	s.RefreshClient()
+	s.client.IPFSConnector.SetTimeout(100 * time.Millisecond)
+	defer s.client.IPFSConnector.SetTimeout(0)
 	// get the failedIndices from the request
 	// trigger client.RepairFailedLeaves
 	// return the result from each of the failedIndices
