@@ -112,3 +112,8 @@ func (c *Client) GetMetaData(cid string) (metadata *Metadata, err error) {
 
 	return &myMetadata, nil
 }
+
+type ForwardMonitoringRequest struct {
+	FileCID        string   `json:"fileCID"`
+	StrandRootCIDs []string `json:"strandRootCIDs"`
+}

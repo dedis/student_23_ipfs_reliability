@@ -83,6 +83,7 @@ func (c *Command) AddDaemonCmd() {
 // AddUploadCmd enables upload functionality
 func (c *Command) AddUploadCmd() {
 	var alpha, s, p, replication int
+	var cNAddress string
 	uploadCmd := &cobra.Command{
 		Use:   "upload [path]",
 		Short: "Upload a file to IPFS",
@@ -91,7 +92,7 @@ func (c *Command) AddUploadCmd() {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.EnableLogPrint()
 
-			cid, metaCID, pinResult, err := c.Upload(args[0], alpha, s, p, replication)
+			cid, metaCID, pinResult, err := c.Upload(args[0], alpha, s, p, replication, cNAddress)
 			if len(cid) > 0 {
 				log.Println("Finish adding file to IPFS. File CID: ", cid)
 			}
@@ -116,6 +117,7 @@ func (c *Command) AddUploadCmd() {
 	uploadCmd.Flags().IntVarP(&s, "s", "s", 0, "Set entanglement s")
 	uploadCmd.Flags().IntVarP(&p, "p", "p", 0, "Set entanglement p")
 	uploadCmd.Flags().IntVarP(&replication, "replication", "r", 5, "Set replication factor for intermediate nodes of EMTs")
+	uploadCmd.Flags().StringVarP(&cNAddress, "address", "addr", "", "Pass the Community node address:port for monitoring")
 
 	c.AddCommand(uploadCmd)
 }

@@ -1,18 +1,20 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"ipfs-alpha-entanglement-code/entangler"
 	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 	"ipfs-alpha-entanglement-code/util"
 	"log"
+	"net/http"
 	"sync"
 
 	"golang.org/x/xerrors"
 )
 
 // Upload uploads the original file, generates and uploads the entanglement of that file
-func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor int) (rootCID string,
+func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor int, communityNodeAddress string) (rootCID string,
 	metaCID string, pinResult func() error, err error) {
 
 	// // init ipfs connector. Fail the whole process if no connection built
@@ -121,28 +123,26 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 
 	pinResult = c.pinMetadataAndParities(metaCID, parityCIDs)
 
-	// TODO: Notify IPFS-Community Node that ROOT CIDs must be tracked (startMonitorFile or tellNodesTrackRootCIDs) ?
-	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
-	for _, strandRoot := range treeCids {
-		peers, err := c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+	// Notify IPFS-Community Node that ROOT CIDs must be tracked (if requested)
+	if communityNodeAddress != "" {
+		log.Println("Trying to start tracking for rootCIDs")
+		requestStruct := ForwardMonitoringRequest{
+			FileCID:        rootCID,
+			StrandRootCIDs: treeCids,
+		}
+
+		request, err := json.Marshal(requestStruct)
 		if err != nil {
-			log.Println("Couldn't start tracking for root CID: ", strandRoot)
+			log.Println("Couldn't start tracking for : ", rootCID)
 			return rootCID, metaCID, pinResult, nil
 		}
-		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
-		println(peers)
-		/* TODO: import from other package possible?
-		converter := DockerClusterToCommunityConverter{}
 
-		request := json.Marshal(FileStats{StrandRootCID: strandRoot,})
-		for _, peer := range peers {
-			communityPeerAddress := converter.ClusterToCommunityIP(peer)
-			status, err := PostJSON(communityPeerAddress+"/startMonitorFile", request)
-			if err != nil || status != success {
-
-			}
+		// Send the POST request
+		resp, err := http.NewRequest("Post", communityNodeAddress+"/forwardMonitoring", bytes.NewBuffer(request))
+		if err != nil {
+			return rootCID, metaCID, pinResult, nil
 		}
-		*/
+		defer resp.Body.Close()
 	}
 
 	return rootCID, metaCID, pinResult, nil
