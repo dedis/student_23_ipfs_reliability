@@ -190,14 +190,14 @@ func (c *Client) PrepareRepair(rootCID string, metadataCID string, depth uint) (
 // Arguments: FileCID, MetaCID, Depth
 // returns: List of lattice indices for leaf nodes that need to be repaired
 
-func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth uint) (leafIndices []int, err error) {
+func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth uint) ([]int, *ipfsconnector.IPFSGetter, error) {
 
 	util.LogPrintf("Retrieving failed leaves for root %s, metadata %s, depth %d", rootCID, metadataCID, depth)
-	_, _, lattice, root, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
-	leafIndices = make([]int, 0)
+	_, getter, lattice, root, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	leafIndices := make([]int, 0)
 
 	if err != nil {
-		return nil, err
+		return nil, getter, err
 	}
 
 	// starting from root, traverse the tree and repair all intermediate nodes
@@ -282,23 +282,23 @@ func (c *Client) RetrieveFailedLeaves(rootCID string, metadataCID string, depth 
 	// 	}
 	// }
 
-	return leafIndices, err
+	return leafIndices, getter, err
 }
 
 // Function that takes a list of lattice indices and repairs them
 // Arguments: FileCID, MetaCID, Depth, List of indices
 // returns: a map of each index to a bool whether it was either repaired(either already available or repaired) or not
 
-func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth uint, leafIndices []int) (result map[int]bool, err error) {
+func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth uint, leafIndices []int) (map[int]bool, *ipfsconnector.IPFSGetter, error) {
 
-	_, _, lattice, _, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
-	result = make(map[int]bool)
+	_, getter, lattice, _, _, err := c.PrepareRepair(rootCID, metadataCID, depth)
+	result := make(map[int]bool)
 	for _, index := range leafIndices {
 		result[index] = false
 	}
 
 	if err != nil {
-		return result, err
+		return result, getter, err
 	}
 
 	// for each index, try to get from the lattice and report whether it was retrieved successfully or not
@@ -337,5 +337,5 @@ func (c *Client) RepairFailedLeaves(rootCID string, metadataCID string, depth ui
 	// 	}
 	// }
 
-	return result, nil
+	return result, getter, nil
 }

@@ -117,7 +117,7 @@ func (c *Command) AddUploadCmd() {
 	uploadCmd.Flags().IntVarP(&s, "s", "s", 0, "Set entanglement s")
 	uploadCmd.Flags().IntVarP(&p, "p", "p", 0, "Set entanglement p")
 	uploadCmd.Flags().IntVarP(&replication, "replication", "r", 5, "Set replication factor for intermediate nodes of EMTs")
-	uploadCmd.Flags().StringVarP(&cNAddress, "address", "addr", "", "Pass the Community node address:port for monitoring")
+	uploadCmd.Flags().StringVarP(&cNAddress, "address", "d", "", "Pass the Community node address:port for monitoring")
 
 	c.AddCommand(uploadCmd)
 }

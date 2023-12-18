@@ -37,10 +37,17 @@ services:
     image: ahmadelrouby/ipfs-discovery:latest
     environment:
       PORT: 3000 # refers to the port the discovery service will listen on
-      HEALH_INTERVAL: 10000 # refers to how often the discovery service will check the health of the peers
+      HEALH_INTERVAL: 1000 # refers to how often the discovery service will check the health of the peers
       MAX_TRIES: 3 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
+      DEPTH: 3 # refers to the depth of the lattice repair
+      REPLICATION_FACTOR: 9 # refers to the replication factor of the EMT intermediate nodes
+      TOTAL_PEERS: 10 # refers to the total number of peers
+      FAILED_PEERS: 4 # refers to the number of failed peers
+      REPAIR_PEERS: 6 # refers to the number of peers used for repairs
     ports:
       - "3000:3000"
+    volumes:
+      - ./metrics:/data
 
 
 ##################################################################################

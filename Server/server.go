@@ -253,6 +253,7 @@ func prepareUpdateView(s *Server, c *gin.Context) {
 
 // Query parameters in context: rootFileCID (CID-string), metadataCID (CID-string), path (string), uploadRecoverData (bool)
 func downloadFile(s *Server, c *gin.Context) {
+	startTime := time.Now()
 	rootFileCID := c.Query("rootFileCID")
 	metadataCID := c.Query("metadataCID")
 	path := c.Query("path")
@@ -269,14 +270,23 @@ func downloadFile(s *Server, c *gin.Context) {
 
 	s.client.SetTimeout(2 * time.Second)
 	defer s.client.SetTimeout(0)
-	data, err := s.client.Download(rootFileCID, path, options, uint(depth))
+	status := PENDING
+	data, getter, err := s.client.Download(rootFileCID, path, options, uint(depth))
+	endTime := time.Now()
+
 	if err != nil {
 		c.Header("Content-Disposition", "attachment; filename="+path)
 		c.Data(400, "application/octet-stream", []byte(err.Error()))
-		return
+		status = FAILURE
 	} else {
 		c.Header("Content-Disposition", "attachment; filename="+path)
 		c.Data(200, "application/octet-stream", data)
+		status = SUCCESS
+	}
+
+	// Only report metrics if depth > 1 (actually doing some kind of repair)
+	if depth > 1 {
+		s.ReportDownloadMetrics(getter, &startTime, &endTime, status)
 	}
 }
 
@@ -348,10 +358,19 @@ func reportUnitRepair(s *Server, c *gin.Context) {
 	}
 
 	newOp := &UnitRepairDone{
-		FileCID:      opResponse.FileCID,
-		MetaCID:      opResponse.MetaCID,
-		Origin:       opResponse.Origin,
-		RepairStatus: opResponse.RepairStatus,
+		FileCID:                 opResponse.FileCID,
+		MetaCID:                 opResponse.MetaCID,
+		Origin:                  opResponse.Origin,
+		RepairStatus:            opResponse.RepairStatus,
+		ParityAvailable:         opResponse.ParityAvailable,
+		DataBlocksFetched:       opResponse.DataBlocksFetched,
+		DataBlocksCached:        opResponse.DataBlocksCached,
+		DataBlocksUnavailable:   opResponse.DataBlocksUnavailable,
+		DataBlocksError:         opResponse.DataBlocksError,
+		ParityBlocksFetched:     opResponse.ParityBlocksFetched,
+		ParityBlocksCached:      opResponse.ParityBlocksCached,
+		ParityBlocksUnavailable: opResponse.ParityBlocksUnavailable,
+		ParityBlocksError:       opResponse.ParityBlocksError,
 	}
 
 	s.unitDone <- newOp

@@ -26,6 +26,16 @@ type IPFSGetter struct {
 	ParityTrees     []*ParityTreeNode
 	ParityIndexMap  []map[int]*ParityTreeNode
 	ParityAvailable []bool
+
+	DataBlocksFetched     int
+	DataBlocksCached      int
+	DataBlocksUnavailable int
+	DataBlocksError       int
+
+	ParityBlocksFetched     int
+	ParityBlocksCached      int
+	ParityBlocksUnavailable int
+	ParityBlocksError       int
 }
 
 // TODO:
@@ -67,6 +77,15 @@ func CreateIPFSGetter(connector *IPFSConnector, CIDIndexMap map[string]int, pari
 		ParityTrees:     parityTrees,
 		ParityIndexMap:  parityIndexMap,
 		ParityAvailable: parityAvails,
+
+		DataBlocksFetched:       0,
+		DataBlocksCached:        0,
+		DataBlocksError:         0,
+		DataBlocksUnavailable:   0,
+		ParityBlocksFetched:     0,
+		ParityBlocksCached:      0,
+		ParityBlocksUnavailable: 0,
+		ParityBlocksError:       0,
 	}
 }
 
@@ -84,6 +103,7 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 	/* get the data, mask to represent the data loss */
 	if getter.DataFilter != nil {
 		if _, ok := getter.DataFilter[index]; ok {
+			getter.DataBlocksUnavailable++
 			err := xerrors.Errorf("no data exists")
 			return nil, err
 		}
@@ -94,12 +114,14 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
 	if !ok {
 		util.LogPrintf("Could not find node for index %d", index)
+		getter.DataBlocksError++
 		return nil, xerrors.Errorf("no node exists for such index")
 	}
 
 	// if node contains data just return the data
 	if target_node.Data != nil {
 		util.LogPrintf("Found data for index %d", index)
+		getter.DataBlocksCached++
 		return target_node.Data, nil
 	}
 
@@ -111,10 +133,12 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 			util.LogPrintf("Attempting to download block using its cid")
 			raw_node, err := getter.shell.ObjectGet(target_node.CID)
 			if err != nil {
+				getter.DataBlocksUnavailable++
 				return nil, err
 			}
 			data, err := getter.GetRawBlock(target_node.CID)
 			if err != nil {
+				getter.DataBlocksUnavailable++
 				return nil, err
 			}
 
@@ -130,6 +154,7 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 				util.LogPrintf("Successfully populated node with links")
 			}
 
+			getter.DataBlocksFetched++
 			target_node.Data = data
 			return data, nil
 
@@ -140,12 +165,14 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 		util.LogPrintf("Could not find cid for index %d, finding its parent", index)
 		parent_index, ok := getter.ParentMap[index]
 		if !ok || parent_index == index {
+			getter.DataBlocksError++
 			return nil, xerrors.Errorf("no data exists")
 		}
 
 		util.LogPrintf("Found parent for index %d, with index %d", index, parent_index)
 		_, err := getter.GetData(parent_index)
 		if err != nil {
+			getter.DataBlocksUnavailable++
 			return nil, err
 		}
 	}
@@ -284,11 +311,13 @@ func calculateNewBlocks(originalBlockSize, newBlockSize, originalIndex int) [][3
 func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode, strand int) ([]byte, error) {
 
 	if currentNode == nil {
+		getter.ParityBlocksError++
 		return nil, xerrors.Errorf("parity doesn't exist")
 	}
 
 	// if data already exists just return it
 	if currentNode.Data != nil {
+		getter.ParityBlocksCached++
 		return currentNode.Data, nil
 	}
 
@@ -297,14 +326,17 @@ func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode, strand in
 		if currentNode.CID != "" {
 			rawNode, err := getter.shell.ObjectGet(currentNode.CID)
 			if err != nil {
+				getter.ParityBlocksUnavailable++
 				return nil, err
 			}
 			rawBlock, err := getter.GetRawBlock(currentNode.CID)
 			if err != nil {
+				getter.ParityBlocksUnavailable++
 				return nil, err
 			}
 			dagNode, err := getter.GetDagNodeFromRawBytes(rawBlock)
 			if err != nil {
+				getter.ParityBlocksUnavailable++
 				return nil, err
 			}
 
@@ -317,15 +349,18 @@ func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode, strand in
 
 			currentData, err := getter.GetFileDataFromDagNode(dagNode)
 			if err != nil {
+				getter.ParityBlocksUnavailable++
 				return nil, err
 			}
 
+			getter.ParityBlocksFetched++
 			currentNode.Data = currentData
 			return currentData, nil
 		}
 
 		// if data doesn't exist and cid doesn't exist, then we need to find the parent of this node and repeat the procedure
 		if currentNode.Parent == nil {
+			getter.ParityBlocksError++
 			return nil, xerrors.Errorf("parity doesn't have a parent")
 		}
 
@@ -336,6 +371,7 @@ func (getter *IPFSGetter) GetParityHelper(currentNode *ParityTreeNode, strand in
 			// this internal node has no way of being repaired since its not entangled
 			// we'll have to make this whole strand unavailable and send a request to
 			// the daemon to regenerate and upload the whole strand again
+			getter.ParityBlocksUnavailable++
 			getter.ParityAvailable[strand] = false
 			return nil, err
 		}
@@ -348,6 +384,7 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	// get the path to the node
 
 	if !getter.ParityAvailable[strand] {
+		getter.ParityBlocksUnavailable++
 		return nil, xerrors.Errorf("parity tree is missing")
 	}
 
@@ -358,6 +395,7 @@ func (getter *IPFSGetter) GetParity(index int, strand int) ([]byte, error) {
 	for _, block := range blocks {
 		targetNode, ok := getter.ParityIndexMap[strand][block[0]]
 		if !ok {
+			getter.ParityBlocksError++
 			return nil, xerrors.Errorf("no parity exists")
 		}
 		currentData, err := getter.GetParityHelper(targetNode, strand)

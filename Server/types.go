@@ -82,10 +82,19 @@ type UnitRepairOperationRequest struct {
 
 // This response is async, it is sent back to the origin of the request when the repair is done
 type UnitRepairOperationResponse struct {
-	FileCID      string       `json:"fileCID"`
-	MetaCID      string       `json:"metaCID"`
-	RepairStatus map[int]bool `json:"repairStatus"`
-	Origin       string       `json:"origin"` // refers to the peer that was repairing these failures
+	FileCID                 string       `json:"fileCID"`
+	MetaCID                 string       `json:"metaCID"`
+	RepairStatus            map[int]bool `json:"repairStatus"`
+	Origin                  string       `json:"origin"` // refers to the peer that was repairing these failures
+	ParityAvailable         []bool       `json:"parityAvailable"`
+	DataBlocksFetched       int          `json:"dataBlocksFetched"`
+	DataBlocksCached        int          `json:"dataBlocksCached"`
+	DataBlocksUnavailable   int          `json:"dataBlocksUnavailable"`
+	DataBlocksError         int          `json:"dataBlocksError"`
+	ParityBlocksFetched     int          `json:"parityBlocksFetched"`
+	ParityBlocksCached      int          `json:"parityBlocksCached"`
+	ParityBlocksUnavailable int          `json:"parityBlocksUnavailable"`
+	ParityBlocksError       int          `json:"parityBlocksError"`
 }
 
 type UnitRepairOperation struct {
@@ -97,10 +106,19 @@ type UnitRepairOperation struct {
 }
 
 type UnitRepairDone struct {
-	FileCID      string
-	MetaCID      string
-	Origin       string
-	RepairStatus map[int]bool
+	FileCID                 string
+	MetaCID                 string
+	Origin                  string
+	RepairStatus            map[int]bool
+	ParityAvailable         []bool
+	DataBlocksFetched       int
+	DataBlocksCached        int
+	DataBlocksUnavailable   int
+	DataBlocksError         int
+	ParityBlocksFetched     int
+	ParityBlocksCached      int
+	ParityBlocksUnavailable int
+	ParityBlocksError       int
 }
 
 type StrandRepairOperation struct {
@@ -125,23 +143,58 @@ const (
 	FAILURE
 )
 
+type DownloadMetrics struct {
+	StartTime               *time.Time   `json:"startTime"`
+	EndTime                 *time.Time   `json:"endTime"`
+	Status                  RepairStatus `json:"status"`
+	ParityAvailable         []bool       `json:"parityAvailable"`
+	DataBlocksFetched       int          `json:"dataBlocksFetched"`
+	DataBlocksCached        int          `json:"dataBlocksCached"`
+	DataBlocksUnavailable   int          `json:"dataBlocksUnavailable"`
+	DataBlocksError         int          `json:"dataBlocksError"`
+	ParityBlocksFetched     int          `json:"parityBlocksFetched"`
+	ParityBlocksCached      int          `json:"parityBlocksCached"`
+	ParityBlocksUnavailable int          `json:"parityBlocksUnavailable"`
+	ParityBlocksError       int          `json:"parityBlocksError"`
+}
+
 type CollabPeerInfo struct {
-	Name            string
-	StartTime       time.Time
-	EndTime         time.Time
-	Status          RepairStatus
-	AllocatedBlocks map[int]bool // map from block CID to repair status
+	Name                    string       `json:"name"`
+	StartTime               time.Time    `json:"startTime"`
+	EndTime                 time.Time    `json:"endTime"`
+	Status                  RepairStatus `json:"status"`
+	AllocatedBlocks         map[int]bool `json:"blocks"` // map from block CID to repair status
+	ParityAvailable         []bool       `json:"parityAvailable"`
+	DataBlocksFetched       int          `json:"dataBlocksFetched"`
+	DataBlocksCached        int          `json:"dataBlocksCached"`
+	DataBlocksUnavailable   int          `json:"dataBlocksUnavailable"`
+	DataBlocksError         int          `json:"dataBlocksError"`
+	ParityBlocksFetched     int          `json:"parityBlocksFetched"`
+	ParityBlocksCached      int          `json:"parityBlocksCached"`
+	ParityBlocksUnavailable int          `json:"parityBlocksUnavailable"`
+	ParityBlocksError       int          `json:"parityBlocksError"`
 }
 
 type CollaborativeRepairData struct {
-	FileCID   string
-	MetaCID   string
-	Depth     uint
-	Status    RepairStatus
-	StartTime time.Time
-	EndTime   time.Time
-	Peers     map[string]*CollabPeerInfo // from peer name to all associated information
-	Origin    string
+	FileCID   string                     `json:"fileCID"`
+	MetaCID   string                     `json:"metaCID"`
+	Depth     uint                       `json:"depth"`
+	Status    RepairStatus               `json:"status"`
+	StartTime time.Time                  `json:"startTime"`
+	EndTime   time.Time                  `json:"endTime"`
+	Peers     map[string]*CollabPeerInfo `json:"peers"` // from peer name to all associated information
+	Origin    string                     `json:"origin"`
+
+	// metrics used by the coordinating node
+	ParityAvailable         []bool `json:"parityAvailable"`
+	DataBlocksFetched       int    `json:"dataBlocksFetched"`
+	DataBlocksCached        int    `json:"dataBlocksCached"`
+	DataBlocksUnavailable   int    `json:"dataBlocksUnavailable"`
+	DataBlocksError         int    `json:"dataBlocksError"`
+	ParityBlocksFetched     int    `json:"parityBlocksFetched"`
+	ParityBlocksCached      int    `json:"parityBlocksCached"`
+	ParityBlocksUnavailable int    `json:"parityBlocksUnavailable"`
+	ParityBlocksError       int    `json:"parityBlocksError"`
 }
 
 type StrandRepairData struct {

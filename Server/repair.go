@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
+	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 	"ipfs-alpha-entanglement-code/util"
 	"math/rand"
 	"net/http"
@@ -39,6 +40,24 @@ func (s *Server) RefreshClient() {
 	s.client = client
 }
 
+func (s *Server) UpdateCoordinatorMetrics(getter *ipfsconnector.IPFSGetter, fileCID string) {
+
+	if getter == nil {
+		return
+	}
+
+	s.collabData[fileCID].ParityAvailable = getter.ParityAvailable
+	s.collabData[fileCID].DataBlocksFetched = getter.DataBlocksFetched
+	s.collabData[fileCID].DataBlocksCached = getter.DataBlocksCached
+	s.collabData[fileCID].DataBlocksUnavailable = getter.DataBlocksUnavailable
+	s.collabData[fileCID].DataBlocksError = getter.DataBlocksError
+	s.collabData[fileCID].ParityBlocksFetched = getter.ParityBlocksFetched
+	s.collabData[fileCID].ParityBlocksCached = getter.ParityBlocksCached
+	s.collabData[fileCID].ParityBlocksUnavailable = getter.ParityBlocksUnavailable
+	s.collabData[fileCID].ParityBlocksError = getter.ParityBlocksError
+
+}
+
 // function that takes in a CollaborativeRepairOperationRequest and starts the repair process
 func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 	s.RefreshClient()
@@ -56,19 +75,30 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 
 	// create a new entry in collabData
 	s.collabData[op.FileCID] = &CollaborativeRepairData{
-		FileCID:   op.FileCID,
-		MetaCID:   op.MetaCID,
-		Status:    PENDING,
-		StartTime: time.Now(),
-		Depth:     op.Depth,
-		Origin:    op.Origin,
-		Peers:     make(map[string]*CollabPeerInfo),
+		FileCID:                 op.FileCID,
+		MetaCID:                 op.MetaCID,
+		Status:                  PENDING,
+		StartTime:               time.Now(),
+		Depth:                   op.Depth,
+		Origin:                  op.Origin,
+		Peers:                   make(map[string]*CollabPeerInfo),
+		ParityAvailable:         make([]bool, 0),
+		DataBlocksFetched:       0,
+		DataBlocksCached:        0,
+		DataBlocksUnavailable:   0,
+		DataBlocksError:         0,
+		ParityBlocksFetched:     0,
+		ParityBlocksCached:      0,
+		ParityBlocksUnavailable: 0,
+		ParityBlocksError:       0,
 	}
 
 	util.LogPrintf("Created new entry in collabData for file %s", op.FileCID)
 
 	// first repair the intermediate nodes of the tree
-	leaves, err := s.client.RetrieveFailedLeaves(op.FileCID, op.MetaCID, op.Depth)
+	leaves, getter, err := s.client.RetrieveFailedLeaves(op.FileCID, op.MetaCID, op.Depth)
+
+	s.UpdateCoordinatorMetrics(getter, op.FileCID)
 
 	if err != nil {
 		util.LogPrintf("Error in retrieving failed leaves for file %s - %s", op.FileCID, err)
@@ -159,10 +189,19 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 			// check if peer already exists in peers
 			if _, ok := s.collabData[op.FileCID].Peers[peers[i]]; !ok {
 				s.collabData[op.FileCID].Peers[peers[i]] = &CollabPeerInfo{
-					Name:            peers[i],
-					StartTime:       time.Now(),
-					Status:          PENDING,
-					AllocatedBlocks: make(map[int]bool),
+					Name:                    peers[i],
+					StartTime:               time.Now(),
+					Status:                  PENDING,
+					AllocatedBlocks:         make(map[int]bool),
+					ParityAvailable:         make([]bool, 0),
+					DataBlocksFetched:       0,
+					DataBlocksCached:        0,
+					DataBlocksUnavailable:   0,
+					DataBlocksError:         0,
+					ParityBlocksFetched:     0,
+					ParityBlocksCached:      0,
+					ParityBlocksUnavailable: 0,
+					ParityBlocksError:       0,
 				}
 			}
 
@@ -198,7 +237,7 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 	// return the result from each of the failedIndices
 
 	util.LogPrintf("Starting unit repair for file %s, with depth %d and %d failed leaves", op.FileCID, op.Depth, len(op.FailedIndices))
-	res, err := s.client.RepairFailedLeaves(op.FileCID, op.MetaCID, op.Depth, op.FailedIndices)
+	res, getter, err := s.client.RepairFailedLeaves(op.FileCID, op.MetaCID, op.Depth, op.FailedIndices)
 
 	if err != nil {
 		util.LogPrintf("Error in repairing failed leaves for file %s - %s", op.FileCID, err)
@@ -217,6 +256,18 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 		RepairStatus: res,
 	}
 
+	if getter != nil {
+		response.ParityAvailable = getter.ParityAvailable
+		response.DataBlocksFetched = getter.DataBlocksFetched
+		response.DataBlocksCached = getter.DataBlocksCached
+		response.DataBlocksUnavailable = getter.DataBlocksUnavailable
+		response.DataBlocksError = getter.DataBlocksError
+		response.ParityBlocksFetched = getter.ParityBlocksFetched
+		response.ParityBlocksCached = getter.ParityBlocksCached
+		response.ParityBlocksUnavailable = getter.ParityBlocksUnavailable
+		response.ParityBlocksError = getter.ParityBlocksError
+	}
+
 	util.LogPrintf("Sending back response for file %s to %s", op.FileCID, op.Origin)
 
 	jsonResponse, err := json.Marshal(response)
@@ -227,6 +278,48 @@ func (s *Server) StartUnitRepair(op *UnitRepairOperation) {
 
 	// send the response back to the origin
 	PostJSON("http://"+op.Origin+"/reportUnitRepair", jsonResponse)
+}
+
+func (s *Server) ReportMetrics(fileCID string) {
+	data := s.collabData[fileCID]
+	if data == nil {
+		return
+	}
+
+	jsonResponse, err := json.Marshal(data)
+	if err != nil {
+		util.LogPrintf("Error in marshalling metrics response for file %s - %s", fileCID, err)
+		return
+	}
+
+	// send the response back to the disovery/metrics
+	PostJSON("http://"+s.discoveryAddress+"/reportMetrics", jsonResponse)
+}
+
+func (s *Server) ReportDownloadMetrics(getter *ipfsconnector.IPFSGetter, startTime *time.Time, endTime *time.Time, status RepairStatus) {
+	metrics := &DownloadMetrics{
+		StartTime:               startTime,
+		EndTime:                 endTime,
+		Status:                  status,
+		ParityAvailable:         getter.ParityAvailable,
+		DataBlocksFetched:       getter.DataBlocksFetched,
+		DataBlocksCached:        getter.DataBlocksCached,
+		DataBlocksUnavailable:   getter.DataBlocksUnavailable,
+		DataBlocksError:         getter.DataBlocksError,
+		ParityBlocksFetched:     getter.ParityBlocksFetched,
+		ParityBlocksCached:      getter.ParityBlocksCached,
+		ParityBlocksUnavailable: getter.ParityBlocksUnavailable,
+		ParityBlocksError:       getter.ParityBlocksError,
+	}
+
+	jsonResponse, err := json.Marshal(metrics)
+	if err != nil {
+		util.LogPrintf("Error in marshalling download metrics response - %s", err)
+		return
+	}
+
+	// send the response back to the disovery/reportDownloadMetrics
+	PostJSON("http://"+s.discoveryAddress+"/reportDownloadMetrics", jsonResponse)
 }
 
 // function that takes in *UnitRepairDone, updates its corresponding entry in collabData
@@ -259,6 +352,17 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 	s.collabData[op.FileCID].Peers[op.Origin].EndTime = time.Now()
 
 	util.LogPrintf("Peer %s finished unit repair for file %s with total time of %s", op.Origin, op.FileCID, s.collabData[op.FileCID].Peers[op.Origin].EndTime.Sub(s.collabData[op.FileCID].Peers[op.Origin].StartTime).String())
+
+	if s.collabData[op.FileCID].Peers[op.Origin].ParityAvailable != nil {
+		s.collabData[op.FileCID].Peers[op.Origin].ParityAvailable = op.ParityAvailable
+	}
+	s.collabData[op.FileCID].Peers[op.Origin].DataBlocksFetched = op.DataBlocksFetched
+	s.collabData[op.FileCID].Peers[op.Origin].DataBlocksCached = op.DataBlocksCached
+	s.collabData[op.FileCID].Peers[op.Origin].DataBlocksUnavailable = op.DataBlocksUnavailable
+	s.collabData[op.FileCID].Peers[op.Origin].DataBlocksError = op.DataBlocksError
+	s.collabData[op.FileCID].Peers[op.Origin].ParityBlocksFetched = op.ParityBlocksFetched
+	s.collabData[op.FileCID].Peers[op.Origin].ParityBlocksCached = op.ParityBlocksCached
+	s.collabData[op.FileCID].Peers[op.Origin].ParityBlocksUnavailable = op.ParityBlocksUnavailable
 
 	repaired := 0
 	success := true
@@ -297,7 +401,7 @@ func (s *Server) ReportUnitRepair(op *UnitRepairDone) {
 		}
 
 		util.LogPrintf("All peers finished unit repair for file %s with total time of %s", op.FileCID, s.collabData[op.FileCID].EndTime.Sub(s.collabData[op.FileCID].StartTime).String())
-
+		s.ReportMetrics(op.FileCID)
 		// check if there's origin for this file
 
 		if s.collabData[op.FileCID].Origin == "" {
