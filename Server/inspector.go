@@ -1,7 +1,7 @@
 package Server
 
 import (
-	"ipfs-alpha-entanglement-code/entangler"
+	"math/rand"
 )
 
 // ComputeHealth
@@ -17,48 +17,79 @@ func (fs *FileStats) ComputeHealth() float32 {
 	return fs.EstimatedBlockProb
 }
 
+func pickNeighbour(fs *FileStats, blockNum *int, isData bool) bool {
+	// TODO Impl
+	return false
+}
+
+func pickInFailedRegion(fs *FileStats, blockNum *int, isData bool) bool {
+	// TODO Impl
+
+	return false
+}
+
+func pickRetry(fs *FileStats, blockNum *int, isData bool) bool {
+	// TODO Impl
+
+	return false
+}
+
 // selectBlockHeuristic
 // @Description: Selects a block to inspect based on the current view of the file.
-func (s *Server) selectBlockHeuristic(fs *FileStats, lattice *entangler.Lattice) (uint, bool) {
-	// TODO: Make usage of missing blocks and cluster state (region, etc.)
-	//  principally seek neighbours of missing blocks (in the lattice)
+func (s *Server) selectBlockHeuristic(fs *FileStats) (uint, bool) {
+	n := rand.Intn(2)
+	isData := true
+	blockNumber := 0
 
-	// 1/2 chance to select a data block
-	// 		1/5 chance to retry a missing block
-	//      1/5 chance to select a block at random
-	//      1/5 chance to try using tag:region to find new missing blocks (if exists, else fallback to random)
-	//      2/5 chance to pick a neighbour of a missing block (if exists, else fallback to random)
-	//
-	// 1/2 chance to select a parity block
-	//      same...
+	if n == 0 {
+		// 1/2 chance to select a data block
+		n = rand.Intn(7)
 
-	return uint(len(lattice.DataBlocks)), true
+		if n < 3 && pickNeighbour(fs, &blockNumber, true) {
+			// 3/7 chance to pick a neighbour of a missing block (if exists, else fallback to others random)
+		} else if n < 5 && pickInFailedRegion(fs, &blockNumber, true) {
+			// 2/7 chance to try using tag:region to find new missing blocks (if exists, else fallback to random)
+		} else if n < 6 && pickRetry(fs, &blockNumber, true) {
+			// 1/7 chance to retry a missing block
+		} else {
+			// pick random block
+			blockNumber = rand.Intn(len(fs.lattice.DataBlocks))
+		}
+
+	} else {
+		// 1/2 chance to select a parity block
+		isData = false
+		n = rand.Intn(7)
+
+		if n < 3 && pickNeighbour(fs, &blockNumber, false) {
+		} else if n < 5 && pickInFailedRegion(fs, &blockNumber, false) {
+		} else if n < 6 && pickRetry(fs, &blockNumber, false) {
+		} else {
+			blockNumber = rand.Intn(len(fs.lattice.ParityBlocks[fs.strandNumber]))
+		}
+	}
+
+	return uint(len(fs.lattice.DataBlocks)), isData
 }
 
 // InspectFile
 // @Description: Inspect a block of the file (parity or data) and update the stats
-func (s *Server) InspectFile(fileCID string, fs *FileStats) {
-
-	_, _, lattice, _, _, err := s.client.PrepareRepair(fileCID, fs.StrandRootCID, 2)
-	// TODO is 5th return value required? = indexNodeMap (replaced it with Getter.GetData/ParityCID)
-
-	if err != nil {
-		println("Error in PrepareRepair: ", err.Error())
-		return
-	}
+func (s *Server) InspectFile(fs *FileStats) {
 
 	// select block heuristically
-	blockNumber, isData := s.selectBlockHeuristic(fs, lattice)
+	blockNumber, isData := s.selectBlockHeuristic(fs)
 
 	var blockCID string
+	var err error
 	// check block
 	if isData {
-		_, _, err = lattice.GetChunkDepth(int(blockNumber)+1, 1)
-		blockCID = lattice.Getter.GetDataCID(int(blockNumber)) // FIXME: How is it updated by getchunkdepth? (*indexNodeMap)[int(blockNumber)].CID
+		// fill block CID in lattice
+		_, _, err = fs.lattice.GetChunkDepth(int(blockNumber)+1, 1)
+		blockCID = fs.lattice.Getter.GetDataCID(int(blockNumber))
 	} else {
-		strandNumber := getStrandNumber(lattice)
-		_, _, err = lattice.GetParity(int(blockNumber)+1, strandNumber)
-		blockCID = lattice.Getter.GetParityCID(int(blockNumber), strandNumber) // TODO verify 1or0 indexed
+		// fill block CID in lattice
+		_, _, err = fs.lattice.GetParity(int(blockNumber)+1, fs.strandNumber)
+		blockCID = fs.lattice.Getter.GetParityCID(int(blockNumber), fs.strandNumber) // TODO verify 1or0 indexed
 	}
 
 	if blockCID == "" {
@@ -66,7 +97,7 @@ func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 		return
 	}
 
-	totalNbBlocks := len(lattice.DataBlocks) + len(lattice.ParityBlocks[0])
+	totalNbBlocks := len(fs.lattice.DataBlocks) + len(fs.lattice.ParityBlocks[0])
 
 	if err == nil {
 		fs.updateBlockProb(1.0, totalNbBlocks)
@@ -84,9 +115,13 @@ func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 				return
 			}
 			watchedBlock.Peer.Name = allocations[0]
-			// TODO: fetch region of this peer if possible (from metrics... maybe impl function for this)
+			// TODO: fetch region of this peer if possible (from metrics... impl function for this) | get inspired by GetPinAllocations
+			// watchedBlock.Peer.Region := s.client.IPFSClusterConnector.GetPeerRegionTag(watchedBlock.Peer.Name)
+
 			// watchedBlock.Peer.Region = ...
-			s.state.potentialFailedRegions[watchedBlock.Peer.Region] = append(s.state.potentialFailedRegions[watchedBlock.Peer.Region], watchedBlock.Peer.Name)
+			if watchedBlock.Peer.Region != "" {
+				s.state.potentialFailedRegions[watchedBlock.Peer.Region] = append(s.state.potentialFailedRegions[watchedBlock.Peer.Region], watchedBlock.Peer.Name)
+			}
 
 			fs.DataBlocksMissing[blockNumber] = watchedBlock
 		}
@@ -103,11 +138,4 @@ func (s *Server) InspectFile(fileCID string, fs *FileStats) {
 
 func (fs *FileStats) updateBlockProb(testedBlockProb float32, totalNbBlocks int) {
 	fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(totalNbBlocks-1) + testedBlockProb) / float32(totalNbBlocks)
-}
-
-func getStrandNumber(lattice *entangler.Lattice) int {
-	i := 0
-	for ; !lattice.Strands[i]; i++ {
-	}
-	return i
 }

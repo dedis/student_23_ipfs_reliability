@@ -128,6 +128,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 		log.Println("Trying to start tracking for rootCIDs")
 		requestStruct := ForwardMonitoringRequest{
 			FileCID:        rootCID,
+			MetadataCID:    metaCID,
 			StrandRootCIDs: treeCids,
 		}
 
