@@ -1,11 +1,11 @@
 package Server
 
 import (
+	"github.com/gin-gonic/gin"
 	"ipfs-alpha-entanglement-code/client"
+	"ipfs-alpha-entanglement-code/entangler"
 	"sync"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 type IPConverter interface {
@@ -13,21 +13,26 @@ type IPConverter interface {
 }
 
 type State struct {
-	files map[string]FileStats
+	files                  map[string]*FileStats
+	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
 	// TODO: Add more state about the cluster?
 	//  time since last expired ping, avg time to failure
-	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
+	running                     bool
+	unavailableBlocksTimestamps []int // TODO init at startMonitoring
+
 }
 
 type FileStats struct {
-	StrandRootCID string `json:"strandRootCID"`
-	// TODO If want to exploit peer.region => have to save somewhere which peer store which blocks. Too much state?
+	MetadataCID              string `json:"metadataCID"`
+	StrandRootCID            string `json:"strandRootCID"`
+	strandNumber             int
+	lattice                  *entangler.Lattice
 	DataBlocksMissing        map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"`
 	ParityBlocksMissing      map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
-	validDataBlocksHistory   map[uint]WatchedBlock
-	validParityBlocksHistory map[uint]WatchedBlock
-	EstimatedBlockProb       float32 `json:"estimatedBlockProb,omitempty"`
-	Health                   float32 `json:"health,omitempty"`
+	validDataBlocksHistory   map[string]WatchedBlock
+	validParityBlocksHistory map[string]WatchedBlock // TODO check if too much mem used -> use a fifo/ring
+	EstimatedBlockProb       float32                 `json:"estimatedBlockProb,omitempty"`
+	Health                   float32                 `json:"health,omitempty"`
 }
 
 type WatchedBlock struct {
@@ -39,6 +44,22 @@ type WatchedBlock struct {
 type ClusterPeer struct {
 	Name   string `json:"peerName"`
 	Region string `json:"region"`
+}
+
+type ForwardMonitoringRequest struct {
+	FileCID        string   `json:"fileCID"`
+	MetadataCID    string   `json:"metadataCID"`
+	StrandRootCIDs []string `json:"strandRootCIDs"`
+}
+
+type StartMonitoringRequest struct {
+	FileCID       string `json:"fileCID"`
+	MetadataCID   string `json:"metadataCID"`
+	StrandRootCID string `json:"strandRootCID"`
+}
+
+type StopMonitoringRequest struct {
+	FileCID string `json:"fileCID"`
 }
 
 type CollaborativeRepairOperation struct {
@@ -233,8 +254,7 @@ const (
 
 type Operation struct {
 	operationType OperationType
-	parameter     string
-	// TODO: Define more params or custom fields?
+	parameter     []byte
 }
 
 type Server struct {

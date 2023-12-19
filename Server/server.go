@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/util"
+	"log"
+	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,7 +40,7 @@ func (s *Server) setUpServer() {
 	// init state
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
-	s.state = State{files: make(map[string]FileStats)}
+	s.state = State{files: make(map[string]*FileStats)}
 	client, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
 	s.client = client
 	s.repairThreshold = 0.3 // FIXME user-set of global const
@@ -132,53 +133,66 @@ func (s *Server) RunServer(port int, communityIP string, clusterIP string, clust
 }
 
 func forwardMonitoring(s *Server, c *gin.Context) {
+	var monitoringRequest ForwardMonitoringRequest
+	// parse args
+	if err := c.ShouldBindJSON(&monitoringRequest); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
 
-	/* adapt
-	for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
-	for _, strandRoot := range treeCids { // move this at the server side
+	monitoringRequest = ForwardMonitoringRequest{
+		FileCID:        monitoringRequest.FileCID,
+		StrandRootCIDs: monitoringRequest.StrandRootCIDs,
+	}
 
-		// TODO
+	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+	for _, strandRoot := range monitoringRequest.StrandRootCIDs {
 
-		peers, err := c.IPFSClusterConnector.GetPinAllocations(strandRoot)
+		peers, err := s.client.IPFSClusterConnector.GetPinAllocations(strandRoot)
 		if err != nil {
-			log.Println("Couldn't start tracking for root CID: ", strandRoot)
-			return rootCID, metaCID, pinResult, nil
+			log.Printf("Couldn't start tracking for root CID: %s\n", strandRoot)
+			continue
 		}
 		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
-		log.Println("Test: ", len(peers)) // TODO for now len(peers) = 0
+		log.Println("Test: ", len(peers)) // TODO for now len(peers) = 0, find why
 
 		params := url.Values{}
-		params.Add("dataRoot", rootCID)
+		params.Add("dataRoot", monitoringRequest.FileCID)
 		params.Add("strandParityRoot", strandRoot)
 
 		for _, peer := range peers {
 
-			communityPeerAddress := s.converter.ClusterToCommunityIP(peer)
+			communityPeerAddress, err := s.getCommunityAddress(peer)
+			if err != nil {
+				log.Printf("Skiping peer: %s for file: %s\n", peer, monitoringRequest.FileCID)
+				continue
+			}
 
-			status, err := Server.PostJSON(communityPeerAddress+fmt.Sprintf("/startMonitorFile?%s", params.Encode()), nil)
+			status, err := PostJSON(communityPeerAddress+fmt.Sprintf("/startMonitorFile?%s", params.Encode()), nil)
 			if err != nil {
 				log.Println("Status: ", status)
 
 			}
 		}
 	}
-	*/
 }
 
 // startMonitorFile
 // Query parameters in context: dataRoot (CID-string), strandParityRoot (CID-string), numBlocks (int)
 func startMonitorFile(s *Server, c *gin.Context) {
-	dataRoot := c.Query("dataRoot")
-	strandParityRoot := c.Query("strandParityRoot")
-
-	if dataRoot == "" || strandParityRoot == "" {
-		c.JSON(400, gin.H{"message": "Missing CID parameters"})
+	var request StartMonitoringRequest
+	// parse args
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
 		return
 	}
 
-	params := []string{dataRoot, strandParityRoot}
-
-	s.operations <- Operation{START_MONITOR_FILE, strings.Join(params, ",")}
+	param, err := json.Marshal(request)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Malformated parameters"})
+		return
+	}
+	s.operations <- Operation{START_MONITOR_FILE, param}
 
 	c.JSON(200, gin.H{"message": "Start op."})
 }
@@ -186,14 +200,20 @@ func startMonitorFile(s *Server, c *gin.Context) {
 // stopMonitorFile
 // Query parameters in context: dataRoot (CID-string)
 func stopMonitorFile(s *Server, c *gin.Context) {
-	dataRoot := c.Query("dataRoot")
-
-	if dataRoot == "" {
-		c.JSON(400, gin.H{"message": "Missing CID parameter"})
+	var request StopMonitoringRequest
+	// parse args
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
 		return
 	}
 
-	s.operations <- Operation{STOP_MONITOR_FILE, dataRoot}
+	param, err := json.Marshal(request)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Malformated parameters"})
+		return
+	}
+
+	s.operations <- Operation{STOP_MONITOR_FILE, param}
 
 	c.JSON(200, gin.H{"message": "Stop op."})
 }
@@ -248,7 +268,7 @@ func prepareUpdateView(s *Server, c *gin.Context) {
 	}
 
 	s.UpdateView(fileCID, &updateViewArgs)
-	c.JSON(503, gin.H{"message": "Not Yet implemented"})
+	c.JSON(503, gin.H{"message": "file view updated"})
 }
 
 // Query parameters in context: rootFileCID (CID-string), metadataCID (CID-string), path (string), uploadRecoverData (bool)

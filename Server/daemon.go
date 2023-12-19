@@ -1,7 +1,7 @@
 package Server
 
 import (
-	"strings"
+	"encoding/json"
 	"time"
 )
 
@@ -27,24 +27,55 @@ func Daemon(s *Server) {
 		case op := <-s.operations:
 			switch {
 			case op.operationType == START_MONITOR_FILE:
-				res := strings.Split(op.parameter, ",")
-				if len(res) != 2 {
-					println("Incorrect number of parameters for START_MONITOR_FILE")
-					break
+
+				var request StartMonitoringRequest
+				// parse args
+				if err := json.Unmarshal(op.parameter, &request); err != nil {
+					println("Error parsing StartMonitoringRequest: ", err.Error())
+					return
 				}
-				dataCID := res[0]
-				strandCID := res[1]
 
 				s.stateMux.Lock()
-				s.state.files[dataCID] = FileStats{strandCID,
-					make(map[uint]WatchedBlock),
-					make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
-					make(map[uint]WatchedBlock), 1.0, 1.0}
+				_, in := s.state.files[request.FileCID]
+				if !in {
+					// If not already monitoring this file
+
+					// get lattice and find strand number
+					_, _, lattice, _, _, err := s.client.PrepareRepair(request.FileCID, request.MetadataCID, 2)
+					// TODO is 5th return value required? = indexNodeMap (replaced it with Getter.GetData/ParityCID)
+
+					if err != nil {
+						println("Error in PrepareRepair: ", err.Error())
+						return
+					}
+
+					metaData, err := s.client.GetMetaData(request.MetadataCID)
+
+					strandNumber := 0
+					for i, root := range metaData.TreeCIDs {
+						if root == request.StrandRootCID {
+							strandNumber = i
+							break
+						}
+					}
+
+					s.state.files[request.FileCID] = &FileStats{request.MetadataCID, request.StrandRootCID,
+						strandNumber, lattice, make(map[uint]WatchedBlock),
+						make(map[uint]WatchedBlock), make(map[string]WatchedBlock),
+						make(map[string]WatchedBlock), 1.0, 1.0}
+				}
 				s.stateMux.Unlock()
 
 			case op.operationType == STOP_MONITOR_FILE:
+
+				var request StopMonitoringRequest
+				// parse args
+				if err := json.Unmarshal(op.parameter, &request); err != nil {
+					println("Error parsing StartMonitoringRequest: ", err.Error())
+					return
+				}
 				s.stateMux.Lock()
-				delete(s.state.files, op.parameter)
+				delete(s.state.files, request.FileCID)
 				s.stateMux.Unlock()
 
 			default:
@@ -57,7 +88,7 @@ func Daemon(s *Server) {
 			// check a block for each file
 			for file, stats := range s.state.files {
 				println("Checking file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
-				s.InspectFile(file, &stats)
+				s.InspectFile(stats)
 			}
 			s.stateMux.Unlock()
 
@@ -70,12 +101,9 @@ func Daemon(s *Server) {
 			for file, stats := range s.state.files {
 				println("Sharing view for file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
 
-				// TODO: impl
 				// Check allocation list for fs.strandRootCID
 				//   send a view of the stats to each CommunityNode corresponding to a peer in the allocation list
-				s.ShareView(file, &stats)
-				// If not in the allocation list, stop tracking the file
-
+				s.ShareView(file, stats)
 			}
 			s.stateMux.Unlock()
 
