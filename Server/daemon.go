@@ -42,7 +42,7 @@ func Daemon(s *Server) {
 
 					// get lattice and find strand number
 					_, _, lattice, _, _, err := s.client.PrepareRepair(request.FileCID, request.MetadataCID, 2)
-					// TODO is 5th return value required? = indexNodeMap (replaced it with Getter.GetData/ParityCID)
+					// TODO is 5th return value required? (see after testing) = indexNodeMap (replaced it with Getter.GetData/ParityCID)
 
 					if err != nil {
 						println("Error in PrepareRepair: ", err.Error())
@@ -59,10 +59,10 @@ func Daemon(s *Server) {
 						}
 					}
 
-					s.state.files[request.FileCID] = &FileStats{request.MetadataCID, request.StrandRootCID,
+					s.state.files[request.FileCID] = &FileStats{request.FileCID, request.MetadataCID, request.StrandRootCID,
 						strandNumber, lattice, make(map[uint]WatchedBlock),
-						make(map[uint]WatchedBlock), make(map[string]WatchedBlock),
-						make(map[string]WatchedBlock), 1.0, 1.0}
+						make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
+						make(map[uint]WatchedBlock), 1.0, 1.0}
 				}
 				s.stateMux.Unlock()
 

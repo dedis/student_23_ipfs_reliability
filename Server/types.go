@@ -23,16 +23,17 @@ type State struct {
 }
 
 type FileStats struct {
+	fileCID                  string
 	MetadataCID              string `json:"metadataCID"`
 	StrandRootCID            string `json:"strandRootCID"`
 	strandNumber             int
 	lattice                  *entangler.Lattice
-	DataBlocksMissing        map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"`
+	DataBlocksMissing        map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"` // TODO verif if need to init slice with some length...
 	ParityBlocksMissing      map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
-	validDataBlocksHistory   map[string]WatchedBlock
-	validParityBlocksHistory map[string]WatchedBlock // TODO check if too much mem used -> use a fifo/ring
-	EstimatedBlockProb       float32                 `json:"estimatedBlockProb,omitempty"`
-	Health                   float32                 `json:"health,omitempty"`
+	validDataBlocksHistory   map[uint]WatchedBlock
+	validParityBlocksHistory map[uint]WatchedBlock // TODO check if too much mem used -> use a fifo/ring
+	EstimatedBlockProb       float32               `json:"estimatedBlockProb,omitempty"`
+	Health                   float32               `json:"health,omitempty"`
 }
 
 type WatchedBlock struct {

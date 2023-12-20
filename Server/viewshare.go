@@ -82,7 +82,8 @@ func (s *Server) UpdateView(fileCID string, fs *FileStats) {
 
 		s.state.files[fileCID].Health = s.state.files[fileCID].ComputeHealth()
 		if fs.Health < s.repairThreshold {
-			// TODO trigger repair
+			// TODO trigger repair (params?)
+			s.repairFile(s.state.files[fileCID], 4, 2)
 		}
 
 	} else {
