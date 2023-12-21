@@ -76,7 +76,7 @@ func (c *Command) AddDaemonCmd() {
 	daemonCmd.Flags().IntVarP(&clusterPort, "cluster-port", "v", 9094, "Sets the port of the cluster node")
 	daemonCmd.Flags().StringVarP(&IpfsIP, "ipfs-ip", "j", "localhost", "Sets the IP address of the IPFS node")
 	daemonCmd.Flags().IntVarP(&IpfsPort, "ipfs-port", "b", 5001, "Sets the port of the IPFS node")
-	daemonCmd.Flags().StringVarP(&discovery, "discovery", "d", "http://localhost:3000", "Sets the discovery server address with port")
+	daemonCmd.Flags().StringVarP(&discovery, "discovery", "d", "localhost:3000", "Sets the discovery server address with port")
 	c.AddCommand(daemonCmd)
 }
 
