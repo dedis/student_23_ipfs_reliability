@@ -32,7 +32,7 @@ func Daemon(s *Server) {
 				// parse args
 				if err := json.Unmarshal(op.parameter, &request); err != nil {
 					println("Error parsing StartMonitoringRequest: ", err.Error())
-					return
+					continue
 				}
 
 				s.stateMux.Lock()
@@ -46,7 +46,7 @@ func Daemon(s *Server) {
 
 					if err != nil {
 						println("Error in PrepareRepair: ", err.Error())
-						return
+						continue
 					}
 
 					metaData, err := s.client.GetMetaData(request.MetadataCID)
@@ -72,7 +72,7 @@ func Daemon(s *Server) {
 				// parse args
 				if err := json.Unmarshal(op.parameter, &request); err != nil {
 					println("Error parsing StartMonitoringRequest: ", err.Error())
-					return
+					continue
 				}
 				s.stateMux.Lock()
 				delete(s.state.files, request.FileCID)
