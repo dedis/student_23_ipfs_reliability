@@ -44,7 +44,7 @@ func (c *IPFSConnector) SetTimeout(duration time.Duration) {
 
 // AddFile takes the file in the given path and writes it to IPFS network
 func (c *IPFSConnector) AddFile(path string) (cid string, err error) {
-	file, err := os.Open(path)
+	file, err := os.Open(path) // TODO catch error if file was not found
 	// get the file size
 	fileInfo, err := file.Stat()
 	util.InfoPrintf("Original File size: %d\n", fileInfo.Size())
