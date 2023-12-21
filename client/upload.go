@@ -124,7 +124,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	pinResult = c.pinMetadataAndParities(metaCID, parityCIDs)
 
 	// Notify IPFS-Community Node that ROOT CIDs must be tracked (if requested)
-	if communityNodeAddress != "" {
+	if communityNodeAddress != "" { // TODO: Confirm that community node is up?
 		log.Println("Trying to start tracking for rootCIDs")
 		requestStruct := ForwardMonitoringRequest{
 			FileCID:        rootCID,
@@ -132,16 +132,27 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 			StrandRootCIDs: treeCids,
 		}
 
-		request, err := json.Marshal(requestStruct)
+		requestPayload, err := json.Marshal(requestStruct)
 		if err != nil {
-			log.Println("Couldn't start tracking for : ", rootCID)
+			log.Println("(error creating request) Couldn't start tracking for : ", rootCID)
 			return rootCID, metaCID, pinResult, nil
 		}
 
 		// Send the POST request
-		resp, err := http.NewRequest("Post", communityNodeAddress+"/forwardMonitoring", bytes.NewBuffer(request))
+		req, err := http.NewRequest("POST", "http://"+communityNodeAddress+"/forwardMonitoring", bytes.NewBuffer(requestPayload))
 		if err != nil {
+			log.Println("(error creating http request) Couldn't start tracking for : ", rootCID)
 			return rootCID, metaCID, pinResult, nil
+		}
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		resp, err := client.Do(req)
+
+		if err != nil {
+			log.Println("(error sending request) Couldn't start tracking for : ", rootCID)
+			return rootCID, metaCID, pinResult, nil
+		} else {
+			log.Println("Request sent for monitoring on address: ", communityNodeAddress+"/forwardMonitoring")
 		}
 		defer resp.Body.Close()
 	}

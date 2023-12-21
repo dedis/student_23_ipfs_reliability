@@ -142,6 +142,7 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 
 	monitoringRequest = ForwardMonitoringRequest{
 		FileCID:        monitoringRequest.FileCID,
+		MetadataCID:    monitoringRequest.MetadataCID,
 		StrandRootCIDs: monitoringRequest.StrandRootCIDs,
 	}
 
@@ -154,24 +155,31 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 			continue
 		}
 		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
-		log.Println("Test: ", len(peers)) // TODO for now len(peers) = 0, find why
+		if len(peers) == 0 {
+			log.Println("No peer found to be storing this strandRootCID: ", strandRoot) // TODO maybe if allocation isn't done yet, retry later (put op in a waiting queue...)
+		}
 
 		params := url.Values{}
 		params.Add("dataRoot", monitoringRequest.FileCID)
 		params.Add("strandParityRoot", strandRoot)
 
 		for _, peer := range peers {
-
-			communityPeerAddress, err := s.getCommunityAddress(peer)
-			if err != nil {
-				log.Printf("Skiping peer: %s for file: %s\n", peer, monitoringRequest.FileCID)
+			if peer == "" {
+				log.Printf("Skiping peer with empty name")
 				continue
 			}
 
+			communityPeerAddress, err := s.getCommunityAddress(peer)
+			if err != nil {
+				log.Printf("Skiping peer: %s for file: %s [err=%v]\n", peer, monitoringRequest.FileCID, err)
+				continue
+			}
+
+			log.Println("Community peer address: ", communityPeerAddress) // TODO check from here: now is only ""
+
 			status, err := PostJSON(communityPeerAddress+fmt.Sprintf("/startMonitorFile?%s", params.Encode()), nil)
 			if err != nil {
-				log.Println("Status: ", status)
-
+				log.Println("Status: ", status, "Error: ", err)
 			}
 		}
 	}
