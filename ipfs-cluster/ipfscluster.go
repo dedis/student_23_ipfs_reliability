@@ -111,6 +111,13 @@ func (c *Connector) GetPeerIDs() []string {
 }
 
 func (c *Connector) GetPeerName(peerID string) string {
+	if peerID == c.selfID {
+		name, err := c.PeerInfo() // FIXME can also save c.selfName while running PeerInfo()
+		if err != nil {
+			return ""
+		}
+		return name
+	}
 	return c.peers[peerID]
 }
 
