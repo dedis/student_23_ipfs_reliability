@@ -179,6 +179,7 @@ func (c *Connector) GetPinAllocations(cid string) ([]string, error) {
 
 	var pinInfo map[string]interface{}
 	decoder := json.NewDecoder(resp.Body)
+
 	if err = decoder.Decode(&pinInfo); err != nil {
 		panic(err)
 	}

@@ -6,7 +6,6 @@ import (
 	"ipfs-alpha-entanglement-code/client"
 	"ipfs-alpha-entanglement-code/util"
 	"log"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -41,9 +40,12 @@ func (s *Server) setUpServer() {
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
 	s.state = State{files: make(map[string]*FileStats)}
-	client, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
-	s.client = client
-	s.repairThreshold = 0.3 // FIXME user-set of global const
+	serverClient, err := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
+	if err != nil {
+		log.Println("Error creating Server client: ", err)
+	}
+	s.client = serverClient
+	s.repairThreshold = 0.3 // FIXME user-set or global const
 	// s.ipConverter = &docker.DockerClusterToCommunityConverter{}
 	s.collabOps = make(chan *CollaborativeRepairOperation)
 	s.collabDone = make(chan *CollaborativeRepairDone)
@@ -146,10 +148,15 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 		StrandRootCIDs: monitoringRequest.StrandRootCIDs,
 	}
 
+	if s.client == nil {
+		serverClient, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
+		s.client = serverClient
+	}
+
 	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
 	for _, strandRoot := range monitoringRequest.StrandRootCIDs {
-
 		peers, err := s.client.IPFSClusterConnector.GetPinAllocations(strandRoot)
+
 		if err != nil {
 			log.Printf("Couldn't start tracking for root CID: %s\n", strandRoot)
 			continue
@@ -159,9 +166,18 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 			log.Println("No peer found to be storing this strandRootCID: ", strandRoot) // TODO maybe if allocation isn't done yet, retry later (put op in a waiting queue...)
 		}
 
-		params := url.Values{}
-		params.Add("dataRoot", monitoringRequest.FileCID)
-		params.Add("strandParityRoot", strandRoot)
+		request := StartMonitoringRequest{
+			FileCID:       monitoringRequest.FileCID,
+			MetadataCID:   monitoringRequest.MetadataCID,
+			StrandRootCID: strandRoot,
+		}
+
+		body, err := json.Marshal(request)
+
+		if err != nil {
+			log.Println("Error marshalling request: ", err)
+			continue
+		}
 
 		for _, peer := range peers {
 			if peer == "" {
@@ -175,9 +191,7 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 				continue
 			}
 
-			log.Println("Community peer address: ", communityPeerAddress) // TODO check from here: now is only ""
-
-			status, err := PostJSON(communityPeerAddress+fmt.Sprintf("/startMonitorFile?%s", params.Encode()), nil)
+			status, err := PostJSON("http://"+communityPeerAddress+fmt.Sprintf("/startMonitorFile"), body)
 			if err != nil {
 				log.Println("Status: ", status, "Error: ", err)
 			}

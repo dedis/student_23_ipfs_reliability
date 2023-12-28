@@ -19,7 +19,6 @@ type State struct {
 	//  time since last expired ping, avg time to failure
 	running                     bool
 	unavailableBlocksTimestamps []int // TODO init at startMonitoring
-
 }
 
 type FileStats struct {

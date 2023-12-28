@@ -144,7 +144,7 @@ func (s *Server) selectBlockHeuristic(fs *FileStats) (uint, bool) {
 		}
 	}
 
-	return uint(len(fs.lattice.DataBlocks)), isData
+	return uint(blockNumber), isData
 }
 
 // InspectFile

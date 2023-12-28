@@ -66,3 +66,14 @@ func (s *Server) getCommunityAddress(clusterIP string) (string, error) {
 
 	return string(body), nil
 }
+
+func (s *Server) printState() {
+	s.stateMux.Lock()
+	defer s.stateMux.Unlock()
+
+	fmt.Printf("State: %+v\n", s.state.String())
+}
+
+func (state *State) String() string {
+	return "impl state printing"
+}

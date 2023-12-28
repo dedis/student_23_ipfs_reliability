@@ -2,6 +2,7 @@ package Server
 
 import (
 	"encoding/json"
+	"ipfs-alpha-entanglement-code/client"
 	"time"
 )
 
@@ -39,6 +40,11 @@ func Daemon(s *Server) {
 				_, in := s.state.files[request.FileCID]
 				if !in {
 					// If not already monitoring this file
+
+					if s.client == nil { // TODO remove this once we have a better way to initialize the client
+						serverClient, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
+						s.client = serverClient
+					}
 
 					// get lattice and find strand number
 					_, _, lattice, _, _, err := s.client.PrepareRepair(request.FileCID, request.MetadataCID, 2)
