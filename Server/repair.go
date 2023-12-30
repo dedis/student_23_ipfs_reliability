@@ -502,4 +502,6 @@ func (s *Server) ContinueStrandRepair(op *CollaborativeRepairDone) {
 	// if we reach here, then the strand repair succeeded
 	s.strandData[op.FileCID].Status = SUCCESS
 	s.strandData[op.FileCID].EndTime = time.Now()
+
+	// TODO update file stats after a successful repair
 }

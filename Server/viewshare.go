@@ -80,7 +80,7 @@ func (s *Server) UpdateView(fileCID string, fs *FileStats) {
 
 		s.state.files[fileCID].EstimatedBlockProb = s.state.files[fileCID].EstimatedBlockProb + fs.EstimatedBlockProb/2
 
-		s.state.files[fileCID].Health = s.state.files[fileCID].ComputeHealth()
+		s.state.files[fileCID].Health = s.ComputeHealth(s.state.files[fileCID])
 		if fs.Health < s.repairThreshold {
 			// TODO trigger repair (params?)
 			s.repairFile(s.state.files[fileCID], 4, 2)

@@ -45,7 +45,7 @@ func (s *Server) setUpServer() {
 		log.Println("Error creating Server client: ", err)
 	}
 	s.client = serverClient
-	s.repairThreshold = 0.3 // FIXME user-set or global const
+	s.repairThreshold = 0.6 // FIXME user-set or global const?
 	// s.ipConverter = &docker.DockerClusterToCommunityConverter{}
 	s.collabOps = make(chan *CollaborativeRepairOperation)
 	s.collabDone = make(chan *CollaborativeRepairDone)
@@ -254,7 +254,7 @@ func listMonitor(s *Server, c *gin.Context) {
 
 	for file, stats := range s.state.files {
 		cids += "CID=" + file + "-[Health = " +
-			strconv.FormatFloat(float64(stats.ComputeHealth()), 'f', -1, 64) + "%], "
+			strconv.FormatFloat(float64(stats.Health), 'f', -1, 64) + "%], "
 	}
 
 	c.JSON(200, gin.H{"message": "Listing monitored CIDs", "CIDs": cids[:len(cids)-2]})
