@@ -6,6 +6,7 @@ import (
 )
 
 const MaxNeighbourTries = 4
+const BlockProbThreshold = 0.8
 
 // ComputeHealth
 // @Description: Computes the estimated health of the file, corresponding to repairability of the file.
@@ -15,7 +16,7 @@ func (fs *FileStats) ComputeHealth() float32 {
 	// sample three diff lattices with the missing blocks and the estimated block probability
 	// then compute the average repairability of the file (using the max repair depth of each)
 
-	// TODO new health definition: how many blocks are missing with depth 2 repair
+	// TODO new health definition: % how many blocks are missing with depth 2 repair
 
 	return fs.EstimatedBlockProb
 }
@@ -45,7 +46,7 @@ func pickNeighbour(fs *FileStats, blockNum *int, isData bool) bool {
 		}
 
 		n = rand.Intn(2)
-		if n == 0 { // TODO simplify if-logic
+		if n == 0 {
 			if len(block.RightNeighbors) == 0 {
 				if len(block.LeftNeighbors) == 0 {
 					continue
@@ -118,14 +119,14 @@ func (s *Server) selectBlockHeuristic(fs *FileStats) (uint, bool) {
 
 	if n == 0 {
 		// 1/2 chance to select a data block
-		n = rand.Intn(7)
+		n = rand.Intn(8)
 
-		if n < 3 && pickNeighbour(fs, &blockNumber, true) {
-			// 3/7 chance to pick a neighbour of a missing block (if exists, else fallback to others random)
-		} else if n < 5 && pickInFailedRegion(s.state.potentialFailedRegions, fs, &blockNumber, true) {
-			// 2/7 chance to try using tag:region to find new missing blocks (if exists, else fallback to random)
-		} else if n < 6 && pickRetry(fs, &blockNumber, true) {
-			// 1/7 chance to retry a missing block
+		if n < 2 && pickNeighbour(fs, &blockNumber, true) {
+			// 1/4 chance to pick a neighbour of a missing block (if exists, else fallback to others random)
+		} else if n < 4 && pickInFailedRegion(s.state.potentialFailedRegions, fs, &blockNumber, true) {
+			// 1/4 chance to try using tag:region to find new missing blocks (if exists, else fallback to random)
+		} else if n < 5 && pickRetry(fs, &blockNumber, true) {
+			// 1/8 chance to retry a missing block
 		} else {
 			// pick random block
 			blockNumber = rand.Intn(len(fs.lattice.DataBlocks))
@@ -134,11 +135,11 @@ func (s *Server) selectBlockHeuristic(fs *FileStats) (uint, bool) {
 	} else {
 		// 1/2 chance to select a parity block
 		isData = false
-		n = rand.Intn(7)
+		n = rand.Intn(8)
 
-		if n < 3 && pickNeighbour(fs, &blockNumber, false) {
-		} else if n < 5 && pickInFailedRegion(s.state.potentialFailedRegions, fs, &blockNumber, false) {
-		} else if n < 6 && pickRetry(fs, &blockNumber, false) {
+		if n < 2 && pickNeighbour(fs, &blockNumber, false) {
+		} else if n < 4 && pickInFailedRegion(s.state.potentialFailedRegions, fs, &blockNumber, false) {
+		} else if n < 5 && pickRetry(fs, &blockNumber, false) {
 		} else {
 			blockNumber = rand.Intn(len(fs.lattice.ParityBlocks[fs.strandNumber]))
 		}
@@ -208,10 +209,12 @@ func (s *Server) InspectFile(fs *FileStats) {
 		// FIXME: Too harsh?
 		fs.updateBlockProb(watchedBlock.Probability, totalNbBlocks)
 
-		fs.Health = fs.ComputeHealth()
-		if fs.Health < s.repairThreshold {
-			// TODO trigger repair (sample func for now)
-			s.repairFile(fs, 4, 2)
+		if fs.EstimatedBlockProb < BlockProbThreshold {
+			fs.Health = fs.ComputeHealth()
+			if fs.Health < s.repairThreshold {
+				// TODO trigger repair (sample func for now)
+				s.repairFile(fs, 4, 2)
+			}
 		}
 	}
 }
@@ -225,7 +228,7 @@ func (s *Server) repairFile(fs *FileStats, depth uint, numPeers int) {
 		FileCID:  fs.fileCID,
 		MetaCID:  fs.MetadataCID,
 		Depth:    depth,
-		Origin:   s.clusterIP, // TODO In the preventive repair case, there is no need to forward the result to an "origin peer". Blocks should simply be re-updated
+		Origin:   s.address,
 		NumPeers: numPeers,
 	}
 
