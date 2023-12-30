@@ -296,3 +296,34 @@ func (c *Connector) PeerLoad() (string, error) {
 
 	return peerLoad, nil
 }
+
+func (c *Connector) GetPeerRegionTag(peer string) string {
+	statusURL := c.url + "/monitor/metrics/tag:region"
+
+	resp, err := http.Get(statusURL)
+	if err != nil {
+		fmt.Printf("Error: unable to get metric (tag:region) from cluster [err: %s]\n", err.Error())
+		return ""
+	}
+	defer resp.Body.Close()
+
+	var metrics []map[string]interface{}
+	decoder := json.NewDecoder(resp.Body)
+
+	if err = decoder.Decode(&metrics); err != nil {
+		fmt.Println("Error: unable to decode metrics")
+		panic(err)
+	}
+
+	for _, metric := range metrics {
+		if metric["peer"] == peer {
+			return metric["value"].(string)
+		}
+	}
+
+	return ""
+}
+
+func (c *Connector) SetClusterRegion(s string) {
+	//TODO implement (if possible) - now is done manually in the config file
+}
