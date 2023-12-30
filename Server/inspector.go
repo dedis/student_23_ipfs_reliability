@@ -6,19 +6,32 @@ import (
 )
 
 const MaxNeighbourTries = 4
-const BlockProbThreshold = 0.8
+const BlockProbThreshold = 0.8 // TEST multiple values
+const EstimatorProbLength = 20 // TEST multiple values // estimator reacts at the same speed for small and large files
+const HealthSampleSize = 10    // TEST multiple values
+const HealthDepth = 2
 
 // ComputeHealth
-// @Description: Computes the estimated health of the file, corresponding to repairability of the file.
-// This value is based on the missing blocks and the current state of the cluster.
-func (fs *FileStats) ComputeHealth() float32 {
-	// TODO: Update (repairability based on lattice with missing blocks and estimated block probability)
-	// sample three diff lattices with the missing blocks and the estimated block probability
-	// then compute the average repairability of the file (using the max repair depth of each)
+// @Description: Computes the estimated health of the file, equivalent to its repairability
+// HealthSampleSize blocks are sampled at random
+func (s *Server) ComputeHealth(fs *FileStats) float32 {
+	validCount := 0
 
-	// TODO new health definition: % how many blocks are missing with depth 2 repair
+	for _, blockNumber := range rand.Perm(len(fs.lattice.DataBlocks))[:HealthSampleSize] {
+		_, _, err := fs.lattice.GetChunkDepth(blockNumber+1, HealthDepth)
+		if err == nil {
+			validCount++
+			fs.updateBlockProb(1.0)
+			delete(fs.DataBlocksMissing, uint(blockNumber))
+		} else {
+			blockCID := fs.lattice.Getter.GetDataCID(blockNumber)
+			if blockCID != "" {
+				s.handleMissingBlock(fs, true, uint(blockNumber), blockCID)
+			}
+		}
+	}
 
-	return fs.EstimatedBlockProb
+	return (fs.EstimatedBlockProb + float32(validCount)/float32(HealthSampleSize)) / 2
 }
 
 func pickNeighbour(fs *FileStats, blockNum *int, isData bool) bool {
@@ -173,54 +186,75 @@ func (s *Server) InspectFile(fs *FileStats) {
 		return
 	}
 
-	totalNbBlocks := len(fs.lattice.DataBlocks) + len(fs.lattice.ParityBlocks[0])
-
 	if err == nil {
-		fs.updateBlockProb(1.0, totalNbBlocks)
-		delete(fs.DataBlocksMissing, blockNumber)
-	} else {
-		watchedBlock, in := fs.DataBlocksMissing[blockNumber]
-		if in {
-			watchedBlock.Probability /= 3
+		fs.updateBlockProb(1.0)
+		if isData {
+			delete(fs.DataBlocksMissing, blockNumber)
 		} else {
-			watchedBlock.CID = blockCID
-			watchedBlock.Probability = 0.33
-
-			allocations, err := s.client.IPFSClusterConnector.GetPinAllocations(blockCID) //ips...
-			if err != nil {
-				return
-			}
-			watchedBlock.Peer.Name = allocations[0]
-			// TODO: fetch region of this peer if possible (from metrics... impl function for this) | get inspired by GetPinAllocations
-			// watchedBlock.Peer.Region := s.client.IPFSClusterConnector.GetPeerRegionTag(watchedBlock.Peer.Name)
-
-			// watchedBlock.Peer.Region = ...
-			if watchedBlock.Peer.Region != "" {
-				s.state.potentialFailedRegions[watchedBlock.Peer.Region] = append(s.state.potentialFailedRegions[watchedBlock.Peer.Region], watchedBlock.Peer.Name)
-			}
-
-			if isData {
-				fs.DataBlocksMissing[blockNumber] = watchedBlock
-			} else {
-				fs.ParityBlocksMissing[blockNumber] = watchedBlock
-			}
+			delete(fs.ParityBlocksMissing, blockNumber)
+		}
+	} else {
+		if s.handleMissingBlock(fs, isData, blockNumber, blockCID) {
+			return
 		}
 
-		// FIXME: Too harsh?
-		fs.updateBlockProb(watchedBlock.Probability, totalNbBlocks)
-
 		if fs.EstimatedBlockProb < BlockProbThreshold {
-			fs.Health = fs.ComputeHealth()
+			fs.Health = s.ComputeHealth(fs)
 			if fs.Health < s.repairThreshold {
-				// TODO trigger repair (sample func for now)
-				s.repairFile(fs, 4, 2)
+				// TODO trigger repair (sample values for now)
+				s.repairFile(fs, 5, 2) // TODO other values better? depth is important to repair, but numPeers not necessarily as file is not currently accessed (speed less relevant)
+				// TODO what if failure to repair with depth 5? try deeper?
 			}
 		}
 	}
 }
 
-func (fs *FileStats) updateBlockProb(testedBlockProb float32, totalNbBlocks int) {
-	fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(totalNbBlocks-1) + testedBlockProb) / float32(totalNbBlocks)
+func (s *Server) handleMissingBlock(fs *FileStats, isData bool, blockNumber uint, blockCID string) bool {
+	var watchedBlock WatchedBlock
+	var in bool
+	if isData {
+		watchedBlock, in = fs.DataBlocksMissing[blockNumber]
+	} else {
+		watchedBlock, in = fs.ParityBlocksMissing[blockNumber]
+	}
+
+	if in {
+		watchedBlock.Probability /= 3
+	} else {
+		watchedBlock.CID = blockCID
+		watchedBlock.Probability = 0.33
+
+		allocations, err := s.client.IPFSClusterConnector.GetPinAllocations(blockCID) //ips...
+		if err != nil {
+			return true
+		}
+		watchedBlock.Peer.Name = allocations[0]
+
+		if watchedBlock.Peer.Name != "" {
+			// TODO: fetch region of this peer if possible (from metrics... impl function for this) | get inspired by GetPinAllocations
+			watchedBlock.Peer.Region = s.client.IPFSClusterConnector.GetPeerRegionTag(watchedBlock.Peer.Name)
+
+			// watchedBlock.Peer.Region = ...
+			if watchedBlock.Peer.Region != "" {
+				s.state.potentialFailedRegions[watchedBlock.Peer.Region] = append(s.state.potentialFailedRegions[watchedBlock.Peer.Region], watchedBlock.Peer.Name)
+			}
+		}
+
+		if isData {
+			fs.DataBlocksMissing[blockNumber] = watchedBlock
+		} else {
+			fs.ParityBlocksMissing[blockNumber] = watchedBlock
+		}
+	}
+
+	// FIXME: Too harsh?
+	fs.updateBlockProb(watchedBlock.Probability)
+	return false
+}
+
+func (fs *FileStats) updateBlockProb(testedBlockProb float32) {
+	// TODO make update with correlation less impactful
+	fs.EstimatedBlockProb = (fs.EstimatedBlockProb*float32(EstimatorProbLength-1) + testedBlockProb) / float32(EstimatorProbLength)
 }
 
 func (s *Server) repairFile(fs *FileStats, depth uint, numPeers int) {
