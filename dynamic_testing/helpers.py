@@ -5,23 +5,23 @@ import time
 import requests
 import uuid
 
-def generate_docker_compose(N, depth, replication_factor, failed_peers, repair_peers, file_size):
+def generate_docker_compose(N, depth, replication_factor, failed_peers, repair_peers, file_size, community=True):
     # Load Jinja2 template
     templateLoader = jinja2.FileSystemLoader(searchpath="./")
     templateEnv = jinja2.Environment(loader=templateLoader)
     template = templateEnv.get_template("docker-compose-template.j2")
 
     # Render the template with the given number of peers
-    output = template.render(N=N, DEPTH=depth, REPLICATION_FACTOR=replication_factor, FAILED_PEERS=failed_peers, REPAIR_PEERS=repair_peers, FILE_SIZE=file_size)
+    output = template.render(N=N, DEPTH=depth, REPLICATION_FACTOR=replication_factor, FAILED_PEERS=failed_peers, REPAIR_PEERS=repair_peers, FILE_SIZE=file_size, community=community)
 
     # Write the output to a file
     with open("docker-compose.yaml", "w") as f:
         f.write(output)
 
 # Creates a test environment with the given parameters and starts the containers
-def create_test_env(num_peers, repair_depth, replication_factor, failed_peers, repair_peers, file_size):
+def create_test_env(num_peers, repair_depth, replication_factor, failed_peers, repair_peers, file_size, community=True):
     # Generate docker compose file
-    generate_docker_compose(num_peers, repair_depth, replication_factor, failed_peers, repair_peers, file_size)
+    generate_docker_compose(num_peers, repair_depth, replication_factor, failed_peers, repair_peers, file_size, community)
 
     # Start the containers
     os.system("docker-compose up -d")
@@ -49,10 +49,31 @@ def upload_file_direct_replication(file_path, replication_factor):
 def kill_peers(num_peers):
     print(f"Killing {num_peers} peers")
     # kill num_peer containers except index 1
+    os.system(f"docker kill ipfs0  cluster0")
+
+    for i in range(2, num_peers+1):
+        os.system(f"docker kill ipfs{i} cluster{i}")
+
+
+def kill_peers_community(num_peers):
+    print(f"Killing {num_peers} peers")
+    # kill num_peer containers except index 1
     os.system(f"docker kill ipfs0 community0 cluster0")
 
     for i in range(2, num_peers+1):
         os.system(f"docker kill ipfs{i} community{i} cluster{i}")
+
+def kill_peers_range(start, num_peers):
+    if start == 0:
+        print("Killing IPFS0")
+        os.system(f"docker kill ipfs0 community0 cluster0")
+        start = 2
+    
+    for i in range(start, num_peers+1):
+        print(f"Killing IPFS{i}")
+        os.system(f"docker kill ipfs{i} community{i} cluster{i}")
+    
+    return num_peers+1
 
 def stop_env():
     os.system("docker-compose down")

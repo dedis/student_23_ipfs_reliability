@@ -28,6 +28,9 @@ version: '3.8'
 # During the first start, default configurations are created for all peers.
 
 services:
+
+{% if community %}
+
 ##################################################################################
 ## Discovery Service #############################################################
 ##################################################################################
@@ -49,6 +52,8 @@ services:
       - "3000:3000"
     volumes:
       - ./metrics:/data
+{% endif %}
+
 
 {% for i in range(N) %}
 ##################################################################################
@@ -59,8 +64,10 @@ services:
   ipfs{{i}}:
     container_name: ipfs{{i}}
     image: ipfs/go-ipfs:latest
+    {% if community %}
     depends_on:
       - discovery
+    {% endif %}
     ports:
       - "{{4001 + i}}:4001"
       - "127.0.0.1:{{5001 + i}}:5001"
@@ -82,6 +89,7 @@ services:
     ports:
       - "127.0.0.1:{{ 9094 + i }}:9094"
 
+  {% if community %}
   community{{i}}:
     container_name: community{{i}}
     image: ahmadelrouby/ipfs-community:latest
@@ -98,5 +106,6 @@ services:
       DISCOVERY_ADDRESS: discovery:3000
     ports:
       - "{{7070 + i}}:7070"
+  {% endif %}
     
 {% endfor %}

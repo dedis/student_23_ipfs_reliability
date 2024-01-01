@@ -96,7 +96,7 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 		util.LogPrintf("Downloading chunk with lattice index %d and preorder index %d", node.LatticeIdx, node.PreOrderIdx)
 		chunk, hasRepaired, err := lattice.GetChunk(node.LatticeIdx + 1)
 		if err != nil {
-			return xerrors.Errorf("fail to recover chunk with CID: %s", err)
+			return xerrors.Errorf("fail to recover chunk with CID: %s - %s", node.CID, err)
 		}
 
 		count += 1

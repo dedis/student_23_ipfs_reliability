@@ -291,7 +291,7 @@ func (l *Lattice) sequentialRecoverHelper(block *Block, rid uint, allowDepth uin
 	// if already has data or already visited
 	if !block.StartRepair(context.Background(), rid) {
 		modifyState = false
-		printRecoverStatus(false, Available, block)
+		printVisitedStatus(false, Visited, block)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (l *Lattice) sequentialRecoverHelper(block *Block, rid uint, allowDepth uin
 		printRecoverStatus(false, DownloadSuccess, block)
 		return
 	}
-	printRecoverStatus(false, DownloadFail, block)
+	printRecoverError(false, DownloadFail, block, downloadErr)
 
 	// repair data
 	success := l.sequentialRepair(block, rid, allowDepth-1)
@@ -411,7 +411,7 @@ func (l *Lattice) parallelRecoverHelper(ctx context.Context, block *Block, rid u
 			printRecoverStatus(true, DownloadSuccess, block)
 			return
 		}
-		printRecoverStatus(true, DownloadFail, block)
+		printRecoverError(true, DownloadFail, block, err)
 
 		// repair data
 		success := l.parallelRepair(ctx, block, rid)
@@ -436,6 +436,7 @@ const (
 	RepairSuccess
 	RepairFail
 	Available
+	Visited
 )
 
 var recoverStatusToString = map[RecoverStatus]string{
@@ -444,6 +445,7 @@ var recoverStatusToString = map[RecoverStatus]string{
 	RepairSuccess:   "repaired successfully",
 	RepairFail:      "repaired fail",
 	Available:       "available",
+	Visited:         "visited",
 }
 
 var recoverStatusToColor = map[RecoverStatus][]func(...interface{}) string{
@@ -467,6 +469,10 @@ var recoverStatusToColor = map[RecoverStatus][]func(...interface{}) string{
 		util.White,
 		util.Magenta,
 	},
+	Visited: {
+		util.Yellow,
+		util.Teal,
+	},
 }
 
 // printRecoverStatus prints the log for recover stage
@@ -488,4 +494,49 @@ func printRecoverStatus(isParallel bool, currStage RecoverStatus, block *Block) 
 
 	util.LogPrintf(color("{%s} Index: %d, Parity: %t, Strand: %d %s"),
 		mode, block.Index, block.IsParity, block.Strand, value)
+}
+
+func printRecoverError(isParallel bool, currStage RecoverStatus, block *Block, err error) {
+	var mode string
+	if isParallel {
+		mode = "Parallel"
+	} else {
+		mode = "Sequential"
+	}
+
+	index := 0
+	if block.IsParity {
+		index = 1
+	}
+
+	color := recoverStatusToColor[currStage][index]
+	value := recoverStatusToString[currStage]
+
+	util.LogPrintf(color("{%s} Index: %d, Parity: %t, Strand: %d %s - %s"),
+		mode, block.Index, block.IsParity, block.Strand, value, err.Error())
+}
+
+func printVisitedStatus(isParallel bool, currStage RecoverStatus, block *Block) {
+	var mode string
+	if isParallel {
+		mode = "Parallel"
+	} else {
+		mode = "Sequential"
+	}
+
+	index := 0
+	if block.IsParity {
+		index = 1
+	}
+
+	color := recoverStatusToColor[currStage][index]
+	value := recoverStatusToString[currStage]
+
+	avail := "Available"
+	if !block.IsAvailable() {
+		avail = "Not Available"
+	}
+
+	util.LogPrintf(color("{%s} Index: %d, Parity: %t, Strand: %d %s - %s"),
+		mode, block.Index, block.IsParity, block.Strand, value, avail)
 }
