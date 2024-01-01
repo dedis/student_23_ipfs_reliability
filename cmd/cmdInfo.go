@@ -47,6 +47,7 @@ func (c *Command) initCmd() {
 	c.AddDownloadCmd()
 	c.AddPerformanceCmd()
 	c.AddDaemonCmd()
+	c.AddDownloadCountCmd()
 }
 
 func (c *Command) AddDaemonCmd() {
@@ -84,6 +85,7 @@ func (c *Command) AddDaemonCmd() {
 func (c *Command) AddUploadCmd() {
 	var alpha, s, p, replication int
 	var cNAddress string
+	var directReplication int
 	uploadCmd := &cobra.Command{
 		Use:   "upload [path]",
 		Short: "Upload a file to IPFS",
@@ -91,6 +93,18 @@ func (c *Command) AddUploadCmd() {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.EnableLogPrint()
+
+			if directReplication > 0 {
+				err := c.DirectUploadWithReplication(args[0], directReplication)
+
+				if err != nil {
+					log.Println("Error:", err)
+					os.Exit(1)
+				}
+
+				log.Println("Direct Upload succeeds.")
+				return
+			}
 
 			cid, metaCID, pinResult, err := c.Upload(args[0], alpha, s, p, replication, cNAddress)
 			if len(cid) > 0 {
@@ -118,6 +132,7 @@ func (c *Command) AddUploadCmd() {
 	uploadCmd.Flags().IntVarP(&p, "p", "p", 0, "Set entanglement p")
 	uploadCmd.Flags().IntVarP(&replication, "replication", "r", 5, "Set replication factor for intermediate nodes of EMTs")
 	uploadCmd.Flags().StringVarP(&cNAddress, "address", "d", "", "Pass the Community node address:port for monitoring")
+	uploadCmd.Flags().IntVarP(&directReplication, "direct-replication", "t", 0, "Set replication factor for direct replication (without entanglement)")
 
 	c.AddCommand(uploadCmd)
 }
@@ -213,6 +228,54 @@ func (c *Command) AddDownloadCmd() {
 		[]int{}, "Specify the missing data blocks for testing")
 
 	downloadCmd.Flags().IntVarP(&depth, "depth", "d", 1, "Set the depth for repairing the missing data (1 no repair)")
+
+	c.AddCommand(downloadCmd)
+}
+
+// AddDownloadCmd enables download functionality
+func (c *Command) AddDownloadCountCmd() {
+	var metaCID string
+	var depth uint
+	var path string
+	downloadCmd := &cobra.Command{
+		Use:   "downloadcnt [cid]",
+		Short: "Download a file from IPFS",
+		Long:  "Download a file from IPFS. Do recovery if data is missing",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			util.EnableLogPrint()
+			// For testing purposes only, using different ports for IPFS and IPFS Cluster
+			cl, err := client.NewClient("", 9095, "", 5002)
+
+			if err != nil {
+				log.Println("Error:", err)
+				os.Exit(1)
+			}
+
+			cl.IPFSConnector.SetTimeout(50 * time.Millisecond)
+			c.Client = cl
+
+			cnt, err := c.DownloadCount(args[0], metaCID, depth)
+			// send get request to 0.0.0.0:port/downloadFile
+			if err != nil {
+				log.Println("Error:", err)
+				os.Exit(1)
+			}
+
+			// write cnt to path
+			out, err := client.WriteFile(args[0], path, []byte(fmt.Sprintf("%d", cnt)))
+			if err != nil {
+				log.Println("Error:", err)
+				os.Exit(1)
+			}
+			log.Printf("results written to: '%s'.\n", out)
+		},
+	}
+	downloadCmd.Flags().StringVarP(&metaCID, "metacid", "m",
+		"", "Provide metafile cid for recovery")
+	downloadCmd.Flags().StringVarP(&path, "output", "o", "",
+		"Provide output path to write the resulting count")
+	downloadCmd.Flags().UintVarP(&depth, "depth", "d", 1, "Set the depth for repairing the missing data (1 no repair)")
 
 	c.AddCommand(downloadCmd)
 }

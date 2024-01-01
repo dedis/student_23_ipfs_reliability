@@ -4,6 +4,8 @@ test.*
 compose/
 metrics
 
+*.pyc
+
 # Logs
 logs
 *.log

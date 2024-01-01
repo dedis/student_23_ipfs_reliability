@@ -305,12 +305,14 @@ func downloadFile(s *Server, c *gin.Context) {
 		depth = 1
 	}
 
+	s.RefreshClient()
+
 	options := client.DownloadOption{
 		UploadRecoverData: uploadRecoverData == "true",
 		MetaCID:           metadataCID,
 	}
 
-	s.client.SetTimeout(2 * time.Second)
+	s.client.SetTimeout(100 * time.Millisecond)
 	defer s.client.SetTimeout(0)
 	status := PENDING
 	data, getter, err := s.client.Download(rootFileCID, path, options, uint(depth))

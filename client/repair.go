@@ -67,7 +67,7 @@ func (c *Client) RepairStrand(rootCID string, metadataCID string, strand int) (e
 	}
 
 	/* download & recover file from IPFS */
-	_, _, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree)
+	_, _, _, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree, true)
 	if errDownload != nil {
 		return errDownload
 	}

@@ -297,6 +297,11 @@ func (s *Server) ReportMetrics(fileCID string) {
 }
 
 func (s *Server) ReportDownloadMetrics(getter *ipfsconnector.IPFSGetter, startTime *time.Time, endTime *time.Time, status RepairStatus) {
+	// A non expected failure occured
+	if getter == nil {
+		return
+	}
+
 	metrics := &DownloadMetrics{
 		StartTime:               startTime,
 		EndTime:                 endTime,

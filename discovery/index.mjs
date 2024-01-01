@@ -13,6 +13,9 @@ const REPLICATION_FACTOR = parseInt(process.env.REPLICATION_FACTOR) || 3
 const TOTAL_PEERS = parseInt(process.env.TOTAL_PEERS) || 10
 const FAILED_PEERS = parseInt(process.env.FAILED_PEERS) || 3
 const REPAIR_PEERS = parseInt(process.env.REPAIR_PEERS) || 3
+const FILE_SIZE = process.env.FILE_SIZE || "25MB"
+
+var done = false;
 
 var services = {
     'exampleCommunityIpWithPort' : { //for example this will be community0:7070
@@ -64,6 +67,9 @@ app.get('/peers', (req, res) => {
     res.json(services)
 })
 
+app.get('/done', (req, res) => { 
+    res.json(done)
+})
 
 app.post('/reportMetrics', async (req, res) => {
     // persist json body to file 
@@ -84,11 +90,12 @@ app.post('/reportMetrics', async (req, res) => {
 
     // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/collab_repair_<current datetime>.json
     let date = new Date()
-    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}`
+    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
     let filename = `${dir_name}/collab_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
     await mkdirp(dir_name)
     await fs.writeFile(filename, JSON.stringify(output))
 
+    done = true;
     console.log(`Metrics written to ${filename}`)
     
 })
@@ -113,11 +120,12 @@ app.post('/reportDownloadMetrics', async (req, res) => {
 
     // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/single_repair_<current datetime>.json
     let date = new Date()
-    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}`
+    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
     let filename = `${dir_name}/single_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
     await mkdirp(dir_name)
     await fs.writeFile(filename, JSON.stringify(output))
 
+    done = true;
     console.log(`Metrics written to ${filename}`)
     
 })

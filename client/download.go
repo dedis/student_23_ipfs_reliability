@@ -16,6 +16,46 @@ type DownloadOption struct {
 	DataFilter        []int
 }
 
+// directDownload interacts directly with IPFS. It fails when any data is missing
+func (c *Client) directCountDownload(rootCID string) (int, error) {
+	count := 0
+
+	var walker func(string)
+	walker = func(nodeCID string) {
+		raw_node, err := c.GetRawObject(nodeCID)
+		if err != nil {
+			return
+		}
+		count += 1
+		// populate the node with data and links if exists
+		if len(raw_node.Links) > 0 {
+			for _, dag_child := range raw_node.Links {
+				walker(dag_child.Hash)
+			}
+		}
+	}
+
+	walker(rootCID)
+	return count, nil
+}
+
+func (c *Client) DownloadCount(rootCID string, metaCID string, depth uint) (int, error) {
+
+	/* direct downloading if no metafile provided or depth is provided as 1 */
+	if len(metaCID) == 0 || depth <= 1 {
+		return c.directCountDownload(rootCID)
+	}
+
+	option := DownloadOption{
+		MetaCID:           metaCID,
+		UploadRecoverData: false,
+		DataFilter:        []int{},
+	}
+
+	_, _, cnt, err := c.metaDownload(rootCID, option, depth, false)
+	return cnt, err
+}
+
 // Download download the original file, repair it if metadata is provided
 func (c *Client) Download(rootCID string, path string, option DownloadOption, depth uint) ([]byte, *ipfsconnector.IPFSGetter, error) {
 	// err = c.InitIPFSConnector()
@@ -27,7 +67,9 @@ func (c *Client) Download(rootCID string, path string, option DownloadOption, de
 	if len(option.MetaCID) == 0 || depth <= 1 {
 		return c.directDownload(rootCID)
 	}
-	return c.metaDownload(rootCID, option, depth)
+
+	data, getter, _, err := c.metaDownload(rootCID, option, depth, true)
+	return data, getter, err
 }
 
 // directDownload interacts directly with IPFS. It fails when any data is missing
@@ -44,8 +86,9 @@ func (c *Client) directDownload(rootCID string) ([]byte, *ipfsconnector.IPFSGett
 
 // downloadAndRecover interacts with IPFS through lattice, It launches recovery if any data is missing
 func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metadata,
-	option DownloadOption, tree *ipfsconnector.EmptyTreeNode) (data []byte, repaired bool, err error) {
+	option DownloadOption, tree *ipfsconnector.EmptyTreeNode, failOnError bool) (data []byte, repaired bool, count int, err error) {
 
+	count = 0
 	data = []byte{}
 	repaired = false
 	var walker func(*ipfsconnector.EmptyTreeNode) error
@@ -56,6 +99,7 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 			return xerrors.Errorf("fail to recover chunk with CID: %s", err)
 		}
 
+		count += 1
 		// upload missing chunk back to the network if allowed
 		if hasRepaired {
 			// Problem: does trimming zero always works?
@@ -81,7 +125,7 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 		for i, link := range links {
 			node.Children[i].CID = link.Cid.String()
 			err = walker(node.Children[i])
-			if err != nil {
+			if err != nil && failOnError {
 				return err
 			}
 		}
@@ -96,22 +140,22 @@ func (c *Client) downloadAndRecover(lattice *entangler.Lattice, metaData *Metada
 		return err
 	}
 	err = walker(tree)
-	return data, repaired, err
+	return data, repaired, count, err
 }
 
 // metaDownload download metadata for recovery usage
-func (c *Client) metaDownload(rootCID string, option DownloadOption, depth uint) ([]byte, *ipfsconnector.IPFSGetter, error) {
+func (c *Client) metaDownload(rootCID string, option DownloadOption, depth uint, failOnError bool) ([]byte, *ipfsconnector.IPFSGetter, int, error) {
 	/* download metafile */
 	metaData, err := c.GetMetaData(option.MetaCID)
 	if err != nil {
-		return nil, nil, xerrors.Errorf("fail to download metaData: %s", err)
+		return nil, nil, 0, xerrors.Errorf("fail to download metaData: %s", err)
 	}
 
 	// Construct empty tree
 	merkleTree, child_parent_index_map, index_node_map, err := ipfsconnector.ConstructTree(metaData.Leaves, metaData.MaxChildren, metaData.Depth, metaData.NumBlocks, metaData.S, metaData.P)
 
 	if err != nil {
-		return nil, nil, xerrors.Errorf("fail to construct tree: %s", err)
+		return nil, nil, 0, xerrors.Errorf("fail to construct tree: %s", err)
 	}
 
 	merkleTree.CID = metaData.OriginalFileCID
@@ -146,10 +190,10 @@ func (c *Client) metaDownload(rootCID string, option DownloadOption, depth uint)
 	lattice.Init()
 
 	/* download & recover file from IPFS */
-	data, repaired, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree)
+	data, repaired, count, errDownload := c.downloadAndRecover(lattice, metaData, option, merkleTree, failOnError)
 	if errDownload != nil {
 		err = errDownload
-		return nil, getter, xerrors.Errorf("fail to download and recover file: %s", err)
+		return nil, getter, count, xerrors.Errorf("fail to download and recover file: %s", err)
 	}
 
 	if repaired {
@@ -159,7 +203,7 @@ func (c *Client) metaDownload(rootCID string, option DownloadOption, depth uint)
 	}
 
 	/* write to file in the given path */
-	return data, getter, nil
+	return data, getter, count, nil
 }
 
 // dataReupload re-uploads the recovered data back to IPFS

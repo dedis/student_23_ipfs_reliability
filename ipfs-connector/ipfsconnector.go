@@ -96,6 +96,10 @@ func (c *IPFSConnector) GetRawBlock(cid string) (data []byte, err error) {
 	return c.shell.BlockGet(cid)
 }
 
+func (c *IPFSConnector) GetRawObject(cid string) (*sh.IpfsObject, error) {
+	return c.shell.ObjectGet(cid)
+}
+
 // GetDagNodeFromRawBytes unmarshals raw bytes into IPFS dagnode
 func (c *IPFSConnector) GetDagNodeFromRawBytes(chunk []byte) (dagnode *dag.ProtoNode, err error) {
 	dagnode, err = dag.DecodeProtobuf(chunk)

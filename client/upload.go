@@ -13,15 +13,18 @@ import (
 	"golang.org/x/xerrors"
 )
 
+func (c *Client) DirectUploadWithReplication(path string, replicationFactor int) error {
+	rootCID, err := c.AddFile(path)
+	util.CheckError(err, "could not add File to IPFS")
+	util.LogPrintf("Finish adding file to IPFS with CID %s. File path: %s", rootCID, path)
+	err = c.IPFSClusterConnector.AddPin(rootCID, replicationFactor)
+	util.CheckError(err, "could not pin file to IPFS cluster")
+	return nil
+}
+
 // Upload uploads the original file, generates and uploads the entanglement of that file
 func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor int, communityNodeAddress string) (rootCID string,
 	metaCID string, pinResult func() error, err error) {
-
-	// // init ipfs connector. Fail the whole process if no connection built
-	// err = c.InitIPFSConnector()
-	// if err != nil {
-	// 	return "", "", nil, err
-	// }
 
 	/* add original file to ipfs */
 
@@ -71,16 +74,10 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 
 	/* generate entanglement */
 
-	parityCIDs, parityBlocks, err := c.generateEntanglementAndUpload(alpha, s, p, nodes)
+	parityBlocks, err := c.generateEntanglementAndUpload(alpha, s, p, nodes)
 	if err != nil {
 		return rootCID, "", nil, err
 	}
-
-	// // init cluster connector. Delay th fail after all uploading to IPFS finishes
-	// clusterErr := c.InitIPFSClusterConnector()
-	// if clusterErr != nil {
-	// 	return rootCID, metaCID, nil, clusterErr
-	// }
 
 	/* pin files in cluster */
 	treeCids, maxParityChildren, err := c.pinAlphaEntanglements(alpha, parityBlocks, replicationFactor)
@@ -89,18 +86,10 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	}
 
 	/* Store Metatdata */
-
-	cidMap := make(map[string]int)
-	for i, node := range nodes {
-		cidMap[node.CID] = i + 1
-	}
 	metaData := Metadata{
-		Alpha:           alpha,
-		S:               s,
-		P:               p,
-		RootCID:         rootCID,
-		DataCIDIndexMap: cidMap,
-		ParityCIDs:      parityCIDs,
+		Alpha: alpha,
+		S:     s,
+		P:     p,
 		//new fields
 		NumBlocks:       len(nodes), // N
 		OriginalFileCID: rootCID,
@@ -121,7 +110,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	}
 	util.LogPrintf("File CID: %s. MetaFile CID: %s", rootCID, metaCID)
 
-	pinResult = c.pinMetadataAndParities(metaCID, parityCIDs)
+	pinResult = c.pinMetadata(metaCID)
 
 	// Notify IPFS-Community Node that ROOT CIDs must be tracked (if requested)
 	if communityNodeAddress != "" { // TODO: Confirm that community node is up?
@@ -162,7 +151,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 
 // generateLattice takes a slice of flattened tree as well as alpha, s, p to perform alpha entanglement
 func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
-	nodes []*ipfsconnector.TreeNode) ([][]string, [][][]byte, error) {
+	nodes []*ipfsconnector.TreeNode) ([][][]byte, error) {
 
 	blockNum := len(nodes)
 	dataChan := make(chan []byte, blockNum)
@@ -191,10 +180,10 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 
 	/* store parity blocks one by one */
 
-	parityCIDs := make([][]string, alpha)
-	for k := 0; k < alpha; k++ {
-		parityCIDs[k] = make([]string, blockNum)
-	}
+	// parityCIDs := make([][]string, alpha)
+	// for k := 0; k < alpha; k++ {
+	// 	parityCIDs[k] = make([]string, blockNum)
+	// }
 
 	parityBlocks := make([][][]byte, alpha)
 	for k := 0; k < alpha; k++ {
@@ -209,30 +198,30 @@ func (c *Client) generateEntanglementAndUpload(alpha int, s int, p int,
 			defer waitGroupAdd.Done()
 			parityBlocks[block.Strand][block.LeftBlockIndex-1] = block.Data
 
-			// upload file to IPFS network
-			blockCID, err := c.AddFileFromMem(block.Data)
-			if err == nil {
-				parityCIDs[block.Strand][block.LeftBlockIndex-1] = blockCID
-			}
+			// // upload file to IPFS network
+			// blockCID, err := c.AddFileFromMem(block.Data)
+			// if err == nil {
+			// 	parityCIDs[block.Strand][block.LeftBlockIndex-1] = blockCID
+			// }
 		}(block)
 	}
 	waitGroupAdd.Wait()
 
-	// check if all parity blocks are added successfully
-	for k := 0; k < alpha; k++ {
-		util.LogPrintf("Displaying parities for strand %d", k)
-		for i, parity := range parityCIDs[k] {
-			util.LogPrintf("Parity %d: %s", i, parity)
-			if len(parity) == 0 {
-				return nil, nil, xerrors.Errorf("could not upload parity %d on strand %d\n", i, k)
-			}
-		}
-		util.LogPrintf("Finish uploading entanglement %d", k)
-	}
+	// // check if all parity blocks are added successfully
+	// for k := 0; k < alpha; k++ {
+	// 	util.LogPrintf("Displaying parities for strand %d", k)
+	// 	for i, parity := range parityCIDs[k] {
+	// 		util.LogPrintf("Parity %d: %s", i, parity)
+	// 		if len(parity) == 0 {
+	// 			return nil, nil, xerrors.Errorf("could not upload parity %d on strand %d\n", i, k)
+	// 		}
+	// 	}
+	// 	util.LogPrintf("Finish uploading entanglement %d", k)
+	// }
 
 	// c.pinAlphaEntanglements(alpha, parityBlocks)
 
-	return parityCIDs, parityBlocks, nil
+	return parityBlocks, nil
 }
 
 func (c *Client) pinAlphaEntanglements(alpha int, parityBlocks [][][]byte, replicationFactor int) ([]string, int, error) {
@@ -331,7 +320,7 @@ func (c *Client) pinEntanglementTree(entaglementCID string, replicationFactor in
 
 // pinMetadataAndParities pins the metadata and parities in IPFS cluster in the non-blocking way
 // User could use the returned function to wait and check if there is any error
-func (c *Client) pinMetadataAndParities(metaCID string, parityCIDs [][]string) func() error {
+func (c *Client) pinMetadata(metaCID string) func() error {
 	var waitGroupPin sync.WaitGroup
 	waitGroupPin.Add(1)
 	var PinErr error
@@ -342,16 +331,6 @@ func (c *Client) pinMetadataAndParities(metaCID string, parityCIDs [][]string) f
 		if err != nil {
 			PinErr = xerrors.Errorf("could not pin metadata: %s", err)
 			return
-		}
-
-		for i := 0; i < len(parityCIDs); i++ {
-			for j := 0; j < len(parityCIDs[0]); j++ {
-				err := c.IPFSClusterConnector.AddPin(parityCIDs[i][j], 1)
-				if err != nil {
-					PinErr = xerrors.Errorf("could not pin parity %s: %s", parityCIDs[i][j], err)
-					return
-				}
-			}
 		}
 	}()
 

@@ -37,13 +37,14 @@ services:
     image: ahmadelrouby/ipfs-discovery:latest
     environment:
       PORT: 3000 # refers to the port the discovery service will listen on
-      HEALH_INTERVAL: 1000 # refers to how often the discovery service will check the health of the peers
-      MAX_TRIES: 3 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
+      HEALH_INTERVAL: 2000 # refers to how often the discovery service will check the health of the peers
+      MAX_TRIES: 2 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
       DEPTH: {{DEPTH}} # refers to the depth of the lattice repair
       REPLICATION_FACTOR: {{REPLICATION_FACTOR}} # refers to the replication factor of the EMT intermediate nodes
       TOTAL_PEERS: {{N}} # refers to the total number of peers
       FAILED_PEERS: {{FAILED_PEERS}} # refers to the number of failed peers
       REPAIR_PEERS: {{REPAIR_PEERS}} # refers to the number of peers used for repairs
+      FILE_SIZE: {{FILE_SIZE}} # refers to the size of the file to be uploaded
     ports:
       - "3000:3000"
     volumes:
@@ -77,7 +78,7 @@ services:
       CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs{{i}}/tcp/5001
       CLUSTER_CRDT_TRUSTEDPEERS: '*'
       CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
-      CLUSTER_MONITORPINGINTERVAL: 2s
+      CLUSTER_MONITORPINGINTERVAL: 1s
     ports:
       - "127.0.0.1:{{ 9094 + i }}:9094"
 
