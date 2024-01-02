@@ -59,7 +59,7 @@ downloadRepairCount: traverses the file tree and returns total after repairing i
 '''
 
 
-repair_depths = [5,10]
+repair_depths = [3, 5, 7,10]
 fileSize = "25MB"
 
 # results would be 

@@ -92,7 +92,7 @@ func (c *Command) AddUploadCmd() {
 		Long:  "Upload a file to IPFS with optional entanglement",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			util.EnableLogPrint()
+			// util.EnableLogPrint()
 
 			cl, err := client.NewClient("", 0, "", 0)
 
@@ -252,7 +252,7 @@ func (c *Command) AddDownloadCountCmd() {
 		Long:  "Download a file from IPFS. Do recovery if data is missing",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			util.EnableLogPrint()
+			// util.EnableLogPrint()
 			// For testing purposes only, using different ports for IPFS and IPFS Cluster
 			cl, err := client.NewClient("", 9095, "", 5002)
 
@@ -261,7 +261,7 @@ func (c *Command) AddDownloadCountCmd() {
 				os.Exit(1)
 			}
 
-			cl.IPFSConnector.SetTimeout(50 * time.Millisecond)
+			cl.IPFSConnector.SetTimeout(100 * time.Millisecond)
 			c.Client = cl
 
 			cnt, err := c.DownloadCount(args[0], metaCID, depth)
