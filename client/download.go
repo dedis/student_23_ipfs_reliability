@@ -2,10 +2,12 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"ipfs-alpha-entanglement-code/entangler"
 	ipfsconnector "ipfs-alpha-entanglement-code/ipfs-connector"
 	"ipfs-alpha-entanglement-code/util"
 	"os"
+	"time"
 
 	"golang.org/x/xerrors"
 )
@@ -39,11 +41,12 @@ func (c *Client) directCountDownload(rootCID string) (int, error) {
 	return count, nil
 }
 
-func (c *Client) DownloadCount(rootCID string, metaCID string, depth uint) (int, error) {
+func (c *Client) DownloadCount(rootCID string, metaCID string, depth uint) (*ipfsconnector.IPFSGetter, int, error) {
 
 	/* direct downloading if no metafile provided or depth is provided as 1 */
 	if len(metaCID) == 0 || depth <= 1 {
-		return c.directCountDownload(rootCID)
+		cnt, err := c.directCountDownload(rootCID)
+		return nil, cnt, err
 	}
 
 	option := DownloadOption{
@@ -52,8 +55,8 @@ func (c *Client) DownloadCount(rootCID string, metaCID string, depth uint) (int,
 		DataFilter:        []int{},
 	}
 
-	_, _, cnt, err := c.metaDownload(rootCID, option, depth, false)
-	return cnt, err
+	_, getter, cnt, err := c.metaDownload(rootCID, option, depth, false)
+	return getter, cnt, err
 }
 
 // Download download the original file, repair it if metadata is provided
@@ -245,6 +248,65 @@ func WriteFile(rootCID string, path string, data []byte) (out string, err error)
 	}
 
 	err = os.WriteFile(out, data, 0600)
+
+	return out, err
+}
+
+type RepairStatus int
+
+const (
+	SUCCESS RepairStatus = iota
+	FAILURE
+)
+
+type DownloadMetrics struct {
+	StartTime               *time.Time   `json:"startTime"`
+	EndTime                 *time.Time   `json:"endTime"`
+	Status                  RepairStatus `json:"status"`
+	ParityAvailable         []bool       `json:"parityAvailable"`
+	DataBlocksFetched       int          `json:"dataBlocksFetched"`
+	DataBlocksCached        int          `json:"dataBlocksCached"`
+	DataBlocksUnavailable   int          `json:"dataBlocksUnavailable"`
+	DataBlocksError         int          `json:"dataBlocksError"`
+	ParityBlocksFetched     int          `json:"parityBlocksFetched"`
+	ParityBlocksCached      int          `json:"parityBlocksCached"`
+	ParityBlocksUnavailable int          `json:"parityBlocksUnavailable"`
+	ParityBlocksError       int          `json:"parityBlocksError"`
+}
+
+func WriteMetrics(path string, getter *ipfsconnector.IPFSGetter, startTime *time.Time, endTime *time.Time, status RepairStatus) (out string, err error) {
+	if len(path) == 0 {
+		out = "metrics.json"
+	} else {
+		out = path
+	}
+
+	if getter == nil {
+		return "", xerrors.Errorf("getter is nil")
+	}
+
+	metrics := DownloadMetrics{
+		StartTime:               startTime,
+		EndTime:                 endTime,
+		Status:                  status,
+		ParityAvailable:         getter.ParityAvailable,
+		DataBlocksFetched:       getter.DataBlocksFetched,
+		DataBlocksCached:        getter.DataBlocksCached,
+		DataBlocksUnavailable:   getter.DataBlocksUnavailable,
+		DataBlocksError:         getter.DataBlocksError,
+		ParityBlocksFetched:     getter.ParityBlocksFetched,
+		ParityBlocksCached:      getter.ParityBlocksCached,
+		ParityBlocksUnavailable: getter.ParityBlocksUnavailable,
+		ParityBlocksError:       getter.ParityBlocksError,
+	}
+
+	jsonBody, err := json.Marshal(metrics)
+
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(out, jsonBody, 0600)
 
 	return out, err
 }

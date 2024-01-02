@@ -4,6 +4,7 @@ import os
 import time
 import requests
 import uuid
+import json
 
 def generate_docker_compose(N, depth, replication_factor, failed_peers, repair_peers, file_size, community=True):
     # Load Jinja2 template
@@ -77,6 +78,7 @@ def kill_peers_range(start, num_peers):
 
 def stop_env():
     os.system("docker-compose down")
+    os.system("docker volume prune -f")
     os.system("docker-compose rm -f")
 
 def create_tmp_file():
@@ -84,15 +86,30 @@ def create_tmp_file():
     tmp_file = open("tmp.txt", "w")
     tmp_file.close()
 
-def download_count(file_cid, meta_cid, repair_depth):
+def download_count(file_cid, meta_cid, repair_depth, metrics=False):
     abs_exec_path = os.path.abspath("../main.go")
     tmp_file_path = os.path.abspath(f"{uuid.uuid4()}.txt")
-    
+    metrics_flag = ""
+    if metrics:
+        metrics_flag = "-t"
+
     if meta_cid == "":
         os.system(f"go run {abs_exec_path} downloadcnt {file_cid} -o {tmp_file_path} -d {repair_depth}")
     else:
-        os.system(f"go run {abs_exec_path} downloadcnt {file_cid} -m {meta_cid} -o {tmp_file_path} -d {repair_depth}")
+        os.system(f"go run {abs_exec_path} downloadcnt {file_cid} -m {meta_cid} -o {tmp_file_path} -d {repair_depth} {metrics_flag}")
     
+    if metrics:
+        try:
+            # Read metrics from file
+            with open(tmp_file_path, "r") as f:
+                metrics = json.load(f)
+            
+            os.remove(tmp_file_path)
+        except Exception as e:
+            print(e)
+            metrics = {}
+        return metrics
+
     try:   
         with open(tmp_file_path, "r") as f:
             count = int(f.read())

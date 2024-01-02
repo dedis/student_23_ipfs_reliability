@@ -246,6 +246,7 @@ func (c *Command) AddDownloadCountCmd() {
 	var metaCID string
 	var depth uint
 	var path string
+	var metrics bool
 	downloadCmd := &cobra.Command{
 		Use:   "downloadcnt [cid]",
 		Short: "Download a file from IPFS",
@@ -253,6 +254,7 @@ func (c *Command) AddDownloadCountCmd() {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			// util.EnableLogPrint()
+			startTime := time.Now()
 			// For testing purposes only, using different ports for IPFS and IPFS Cluster
 			cl, err := client.NewClient("", 9095, "", 5002)
 
@@ -264,20 +266,37 @@ func (c *Command) AddDownloadCountCmd() {
 			cl.IPFSConnector.SetTimeout(100 * time.Millisecond)
 			c.Client = cl
 
-			cnt, err := c.DownloadCount(args[0], metaCID, depth)
+			getter, cnt, err := c.DownloadCount(args[0], metaCID, depth)
 			// send get request to 0.0.0.0:port/downloadFile
-			if err != nil {
-				log.Println("Error:", err)
-				os.Exit(1)
+
+			if metrics {
+				// write metrics to path
+				endTime := time.Now()
+				status := client.SUCCESS
+				if err != nil {
+					status = client.FAILURE
+				}
+				out, err := client.WriteMetrics(path, getter, &startTime, &endTime, status)
+				if err != nil {
+					log.Println("Error:", err)
+					os.Exit(1)
+				}
+				log.Printf("Metrics written to: '%s'.\n", out)
+			} else {
+				if err != nil {
+					log.Println("Error:", err)
+					os.Exit(1)
+				}
+				// write cnt to path
+				out, err := client.WriteFile(args[0], path, []byte(fmt.Sprintf("%d", cnt)))
+				if err != nil {
+					log.Println("Error:", err)
+					os.Exit(1)
+				}
+
+				log.Printf("results written to: '%s'.\n", out)
 			}
 
-			// write cnt to path
-			out, err := client.WriteFile(args[0], path, []byte(fmt.Sprintf("%d", cnt)))
-			if err != nil {
-				log.Println("Error:", err)
-				os.Exit(1)
-			}
-			log.Printf("results written to: '%s'.\n", out)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&metaCID, "metacid", "m",
@@ -285,6 +304,7 @@ func (c *Command) AddDownloadCountCmd() {
 	downloadCmd.Flags().StringVarP(&path, "output", "o", "",
 		"Provide output path to write the resulting count")
 	downloadCmd.Flags().UintVarP(&depth, "depth", "d", 1, "Set the depth for repairing the missing data (1 no repair)")
+	downloadCmd.Flags().BoolVarP(&metrics, "metrics", "t", false, "Set to true to enable metrics")
 
 	c.AddCommand(downloadCmd)
 }
