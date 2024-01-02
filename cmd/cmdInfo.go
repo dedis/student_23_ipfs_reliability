@@ -94,6 +94,15 @@ func (c *Command) AddUploadCmd() {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.EnableLogPrint()
 
+			cl, err := client.NewClient("", 0, "", 0)
+
+			if err != nil {
+				log.Println("Error:", err)
+				os.Exit(1)
+			}
+
+			c.Client = cl
+
 			if directReplication > 0 {
 				err := c.DirectUploadWithReplication(args[0], directReplication)
 
