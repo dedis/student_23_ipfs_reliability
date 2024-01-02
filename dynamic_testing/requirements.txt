@@ -3,3 +3,5 @@ argparse
 requests
 uuid
 json
+numpy
+matplotlib
