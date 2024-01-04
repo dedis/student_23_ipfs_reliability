@@ -104,6 +104,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		util.LogPrintf("Error in retrieving failed leaves for file %s - %s", op.FileCID, err)
 		s.collabData[op.FileCID].Status = FAILURE
 		s.collabData[op.FileCID].EndTime = time.Now()
+		s.ReportMetrics(op.FileCID)
 		return
 	}
 
@@ -114,6 +115,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		util.LogPrintf("No failed leaves for file %s", op.FileCID)
 		s.collabData[op.FileCID].Status = SUCCESS
 		s.collabData[op.FileCID].EndTime = time.Now()
+		s.ReportMetrics(op.FileCID)
 		return
 	}
 
@@ -124,6 +126,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 		util.LogPrintf("Error in getting all peers for file %s - %s", op.FileCID, err)
 		s.collabData[op.FileCID].Status = FAILURE
 		s.collabData[op.FileCID].EndTime = time.Now()
+		s.ReportMetrics(op.FileCID)
 		return
 	}
 
@@ -174,6 +177,7 @@ func (s *Server) StartCollabRepair(op *CollaborativeRepairOperation) {
 			util.LogPrintf("Error in marshalling request for peer %d - %s", i, err)
 			s.collabData[op.FileCID].Status = FAILURE
 			s.collabData[op.FileCID].EndTime = time.Now()
+			s.ReportMetrics(op.FileCID)
 			return
 		}
 	}

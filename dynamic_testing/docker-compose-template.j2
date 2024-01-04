@@ -40,8 +40,8 @@ services:
     image: ahmadelrouby/ipfs-discovery:latest
     environment:
       PORT: 3000 # refers to the port the discovery service will listen on
-      HEALH_INTERVAL: 2000 # refers to how often the discovery service will check the health of the peers
-      MAX_TRIES: 2 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
+      HEALH_INTERVAL: 3000 # refers to how often the discovery service will check the health of the peers
+      MAX_TRIES: 1 # refers to how many times the discovery service will try to connect to a peer before removing it from the list
       DEPTH: {{DEPTH}} # refers to the depth of the lattice repair
       REPLICATION_FACTOR: {{REPLICATION_FACTOR}} # refers to the replication factor of the EMT intermediate nodes
       TOTAL_PEERS: {{N}} # refers to the total number of peers
@@ -50,8 +50,6 @@ services:
       FILE_SIZE: {{FILE_SIZE}} # refers to the size of the file to be uploaded
     ports:
       - "3000:3000"
-    volumes:
-      - ./metrics:/data
 {% endif %}
 
 

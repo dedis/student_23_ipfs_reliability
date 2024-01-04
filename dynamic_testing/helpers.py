@@ -147,6 +147,19 @@ def check_done():
         print("An error occurred:", e)
         return False
 
+def retrieve_metrics():
+    print("Retrieving metrics")
+    try:
+        response = requests.get("http://localhost:3000/metrics")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print("Failed to get data. Status code:", response.status_code)
+            return {}
+    except Exception as e:
+        print("An error occurred:", e)
+        return {}
+
 def check_meta_pinned(meta_cid):
     # Get the pin status from cluster1 in case cluster0 is already down
     # Shouldn't be the case since we should always wait until metadata is pinned before killing ipfs0

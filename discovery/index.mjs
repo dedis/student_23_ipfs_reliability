@@ -16,6 +16,7 @@ const REPAIR_PEERS = parseInt(process.env.REPAIR_PEERS) || 3
 const FILE_SIZE = process.env.FILE_SIZE || "25MB"
 
 var done = false;
+var metrics = {}
 
 var services = {
     'exampleCommunityIpWithPort' : { //for example this will be community0:7070
@@ -71,6 +72,10 @@ app.get('/done', (req, res) => {
     res.json(done)
 })
 
+app.get('/metrics', (req, res) => {
+    res.json(metrics)
+})
+
 app.post('/reportMetrics', async (req, res) => {
     // persist json body to file 
     // the file will be stored 
@@ -88,15 +93,16 @@ app.post('/reportMetrics', async (req, res) => {
     res.status(200).send('OK')
 
 
-    // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/collab_repair_<current datetime>.json
-    let date = new Date()
-    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
-    let filename = `${dir_name}/collab_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
-    await mkdirp(dir_name)
-    await fs.writeFile(filename, JSON.stringify(output))
+    // // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/collab_repair_<current datetime>.json
+    // let date = new Date()
+    // let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
+    // let filename = `${dir_name}/collab_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
+    // await mkdirp(dir_name)
+    // await fs.writeFile(filename, JSON.stringify(output))
 
     done = true;
-    console.log(`Metrics written to ${filename}`)
+    metrics = output;
+    console.log(`Metrics saved ${metrics}`)
     
 })
 
@@ -118,15 +124,16 @@ app.post('/reportDownloadMetrics', async (req, res) => {
     res.status(200).send('OK')
 
 
-    // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/single_repair_<current datetime>.json
-    let date = new Date()
-    let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
-    let filename = `${dir_name}/single_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
-    await mkdirp(dir_name)
-    await fs.writeFile(filename, JSON.stringify(output))
+    // // write output to /data/DEPTH_REPLICATIONFACTOR_TOTALPEERS_FAILEDPEERS_REPAIRPEERS/single_repair_<current datetime>.json
+    // let date = new Date()
+    // let dir_name = `/data/${DEPTH}_${REPLICATION_FACTOR}_${TOTAL_PEERS}_${FAILED_PEERS}_${REPAIR_PEERS}_${FILE_SIZE}`
+    // let filename = `${dir_name}/single_repair_${date.getFullYear()}_${date.getMonth()}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}.json`
+    // await mkdirp(dir_name)
+    // await fs.writeFile(filename, JSON.stringify(output))
 
     done = true;
-    console.log(`Metrics written to ${filename}`)
+    metrics = output;
+    console.log(`Metrics saved ${metrics}`)
     
 })
 // Every 3 seconds with send a health check to the other services
