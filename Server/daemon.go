@@ -2,13 +2,15 @@ package Server
 
 import (
 	"encoding/json"
-	"ipfs-alpha-entanglement-code/client"
 	"time"
 )
 
+const InspectionInterval = 30 * time.Second
+const ViewSharingInterval = 4 * time.Minute
+
 func Daemon(s *Server) {
-	timerFiles := time.NewTimer(30 * time.Second)
-	timerShareView := time.NewTimer(3 * time.Minute)
+	timerFiles := time.NewTimer(InspectionInterval)
+	timerShareView := time.NewTimer(ViewSharingInterval)
 
 	for {
 		select {
@@ -41,21 +43,14 @@ func Daemon(s *Server) {
 				if !in {
 					// If not already monitoring this file
 
-					if s.client == nil { // TODO remove this once we have a better way to initialize the client
-						serverClient, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
-						s.client = serverClient
-					}
-
-					// get lattice and find strand number
-					_, _, lattice, _, _, err := s.client.PrepareRepair(request.FileCID, request.MetadataCID, 2)
-					// TODO is 5th return value required? (see after testing) = indexNodeMap (replaced it with Getter.GetData/ParityCID)
-
-					if err != nil {
-						println("Error in PrepareRepair: ", err.Error())
-						continue
-					}
+					s.RefreshClient()
+					s.client.SetTimeout(5 * time.Second)
 
 					metaData, err := s.client.GetMetaData(request.MetadataCID)
+					if err != nil {
+						println("Could not fetch the metadata: ", err.Error())
+						continue
+					}
 
 					strandNumber := 0
 					for i, root := range metaData.TreeCIDs {
@@ -66,9 +61,8 @@ func Daemon(s *Server) {
 					}
 
 					s.state.files[request.FileCID] = &FileStats{request.FileCID, request.MetadataCID, request.StrandRootCID,
-						strandNumber, lattice, make(map[uint]WatchedBlock),
-						make(map[uint]WatchedBlock), make(map[uint]WatchedBlock),
-						make(map[uint]WatchedBlock), 1.0, 1.0}
+						strandNumber, make(map[uint]*WatchedBlock), make(map[uint]*WatchedBlock),
+						make(map[uint]*WatchedBlock), 1.0, 1.0}
 				}
 				s.stateMux.Unlock()
 
@@ -77,11 +71,51 @@ func Daemon(s *Server) {
 				var request StopMonitoringRequest
 				// parse args
 				if err := json.Unmarshal(op.parameter, &request); err != nil {
-					println("Error parsing StartMonitoringRequest: ", err.Error())
+					println("Error parsing StopMonitoringRequest: ", err.Error())
 					continue
 				}
 				s.stateMux.Lock()
 				delete(s.state.files, request.FileCID)
+				s.stateMux.Unlock()
+
+			case op.operationType == RESET_MONITOR_FILE:
+
+				var request ResetMonitoringRequest
+				// parse args
+				if err := json.Unmarshal(op.parameter, &request); err != nil {
+					println("Error parsing StopMonitoringRequest: ", err.Error())
+					continue
+				}
+
+				s.stateMux.Lock()
+
+				parityBlocksMissing := make(map[uint]*WatchedBlock)
+				validParityBlocksHistory := make(map[uint]*WatchedBlock)
+				dataBlocksMissing := make(map[uint]*WatchedBlock)
+
+				blocProb := s.state.files[request.FileCID].EstimatedBlockProb
+				health := s.state.files[request.FileCID].Health
+
+				// Keep old values for parity blocks if only data blocks were repaired
+				if request.IsData {
+					parityBlocksMissing = s.state.files[request.FileCID].ParityBlocksMissing
+					validParityBlocksHistory = s.state.files[request.FileCID].validParityBlocksHistory
+				} else {
+					dataBlocksMissing = s.state.files[request.FileCID].DataBlocksMissing
+				}
+
+				s.state.files[request.FileCID] = &FileStats{
+					fileCID:                  request.FileCID,
+					MetadataCID:              s.state.files[request.FileCID].MetadataCID,
+					StrandRootCID:            s.state.files[request.FileCID].StrandRootCID,
+					strandNumber:             s.state.files[request.FileCID].strandNumber,
+					DataBlocksMissing:        dataBlocksMissing,
+					ParityBlocksMissing:      parityBlocksMissing,
+					validParityBlocksHistory: validParityBlocksHistory,
+					EstimatedBlockProb:       (blocProb + 1) / 2,
+					Health:                   (health + 1) / 2,
+				}
+
 				s.stateMux.Unlock()
 
 			default:
@@ -91,6 +125,9 @@ func Daemon(s *Server) {
 
 		case <-timerFiles.C:
 			s.stateMux.Lock()
+			s.RefreshClient()
+			s.client.SetTimeout(5 * time.Second)
+
 			// check a block for each file
 			for file, stats := range s.state.files {
 				println("Checking file: ", file, "with strandRoot: ", stats.StrandRootCID, "\n")
@@ -98,7 +135,8 @@ func Daemon(s *Server) {
 			}
 			s.stateMux.Unlock()
 
-			timerFiles.Reset(30 * time.Second)
+			timerFiles.Reset(InspectionInterval)
+			s.client.SetTimeout(0)
 
 		case <-timerShareView.C:
 			s.stateMux.Lock()
@@ -113,7 +151,7 @@ func Daemon(s *Server) {
 			}
 			s.stateMux.Unlock()
 
-			timerShareView.Reset(3 * time.Minute)
+			timerShareView.Reset(ViewSharingInterval)
 		}
 	}
 }
