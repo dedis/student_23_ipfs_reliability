@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const HealthRepairThreshold = 0.6
+
 // SetUpServer
 // @Description: Initialize the Server struct and the REST endpoints
 func (s *Server) setUpServer() {
@@ -21,10 +23,12 @@ func (s *Server) setUpServer() {
 	s.ginEngine.POST("/forwardMonitoring", func(c *gin.Context) { forwardMonitoring(s, c) })
 	s.ginEngine.POST("/startMonitorFile", func(c *gin.Context) { startMonitorFile(s, c) })
 	s.ginEngine.POST("/stopMonitorFile", func(c *gin.Context) { stopMonitorFile(s, c) })
+	s.ginEngine.POST("/resetMonitorFile", func(c *gin.Context) { resetMonitorFile(s, c) })
 	s.ginEngine.GET("/listMonitor", func(c *gin.Context) { listMonitor(s, c) })
 	s.ginEngine.GET("/checkFileStatus", func(c *gin.Context) { checkFileStatus(s, c) })
 	s.ginEngine.GET("/checkClusterStatus", func(c *gin.Context) { checkClusterStatus(s, c) })
 	s.ginEngine.POST("/updateView", func(c *gin.Context) { prepareUpdateView(s, c) })
+	s.ginEngine.GET("/recomputeHealth", func(c *gin.Context) { recomputeHealth(s, c) })
 
 	// repair endpoints
 	s.ginEngine.GET("/downloadFile", func(c *gin.Context) { downloadFile(s, c) })
@@ -39,13 +43,16 @@ func (s *Server) setUpServer() {
 	// init state
 	s.ctx = make(chan struct{})
 	s.operations = make(chan Operation)
-	s.state = State{files: make(map[string]*FileStats)}
+	s.state = State{files: make(map[string]*FileStats),
+		potentialFailedRegions:      make(map[string][]string),
+		unavailableBlocksTimestamps: make([]int64, 0)}
+	s.state.unavailableBlocksTimestamps = append(s.state.unavailableBlocksTimestamps, time.Now().UnixNano())
 	serverClient, err := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
 	if err != nil {
 		log.Println("Error creating Server client: ", err)
 	}
 	s.client = serverClient
-	s.repairThreshold = 0.6 // FIXME user-set or global const?
+	s.repairThreshold = HealthRepairThreshold
 	// s.ipConverter = &docker.DockerClusterToCommunityConverter{}
 	s.collabOps = make(chan *CollaborativeRepairOperation)
 	s.collabDone = make(chan *CollaborativeRepairDone)
@@ -148,10 +155,11 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 		StrandRootCIDs: monitoringRequest.StrandRootCIDs,
 	}
 
-	if s.client == nil {
-		serverClient, _ := client.NewClient(s.clusterIP, s.clusterPort, s.ipfsIP, s.ipfsPort)
-		s.client = serverClient
-	}
+	s.RefreshClient()
+	s.client.SetTimeout(2 * time.Second)
+	defer s.client.SetTimeout(0)
+
+	time.Sleep(5 * time.Second) // give time to allocation to succeed
 
 	// for strandRoot in strandCIDs: -> peers = c.IPFSClusterConnector.GetPinAllocations(strandRoot)
 	for _, strandRoot := range monitoringRequest.StrandRootCIDs {
@@ -163,7 +171,8 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 		}
 		// for peer in peers: -> send peer's Community Node [startTracking FileCID - strandRoot]
 		if len(peers) == 0 {
-			log.Println("No peer found to be storing this strandRootCID: ", strandRoot) // TODO maybe if allocation isn't done yet, retry later (put op in a waiting queue...)
+			log.Println("No peer found to be storing this strandRootCID: ", strandRoot)
+			continue
 		}
 
 		request := StartMonitoringRequest{
@@ -181,11 +190,16 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 
 		for _, peer := range peers {
 			if peer == "" {
-				log.Printf("Skiping peer with empty name")
+				log.Printf("Skiping peer with empty name *")
 				continue
 			}
 
 			communityPeerAddress, err := s.getCommunityAddress(peer)
+			if communityPeerAddress == "" {
+				log.Printf("Could not find community address for peer: %s\n", peer)
+				continue
+			}
+
 			if err != nil {
 				log.Printf("Skiping peer: %s for file: %s [err=%v]\n", peer, monitoringRequest.FileCID, err)
 				continue
@@ -194,6 +208,8 @@ func forwardMonitoring(s *Server, c *gin.Context) {
 			status, err := PostJSON("http://"+communityPeerAddress+fmt.Sprintf("/startMonitorFile"), body)
 			if err != nil {
 				log.Println("Status: ", status, "Error: ", err)
+			} else {
+				log.Printf("Forwarded monitoring request for file: %s to peer: %s\n", monitoringRequest.FileCID, peer)
 			}
 		}
 	}
@@ -240,6 +256,76 @@ func stopMonitorFile(s *Server, c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Stop op."})
 }
 
+func resetMonitorFile(s *Server, c *gin.Context) {
+	var request ResetMonitoringRequest
+	// parse args
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"message": "Missing parameters"})
+		return
+	}
+
+	param, err := json.Marshal(request)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Malformated parameters"})
+		return
+	}
+
+	s.operations <- Operation{RESET_MONITOR_FILE, param}
+
+	c.JSON(200, gin.H{"message": "Reset op."})
+}
+
+// resetMonitorFile
+// reset stats for file (fileCID) after repair
+func (s *Server) resetMonitorFile(fileCID string, isData bool) {
+	request := ResetMonitoringRequest{
+		FileCID: fileCID,
+		IsData:  isData,
+	}
+
+	param, err := json.Marshal(request)
+	if err != nil {
+		log.Println("Error marshalling request: ", err)
+		return
+	}
+
+	// send reset op. to all monitor nodes for this file
+	metaData, err := s.client.GetMetaData(s.state.files[fileCID].MetadataCID)
+
+	if err != nil {
+		println("Could not fetch the metadata: ", err.Error())
+		return
+	}
+
+	for _, root := range metaData.TreeCIDs {
+		peers, err := s.client.IPFSClusterConnector.GetPinAllocations(root)
+
+		if err != nil {
+			log.Printf("Couldn't start tracking for root CID: %s\n", root)
+			continue
+		}
+
+		for _, peer := range peers {
+			if peer == "" {
+				log.Printf("Skiping peer with empty name")
+				continue
+			}
+
+			communityPeerAddress, err := s.getCommunityAddress(peer)
+			if err != nil {
+				log.Printf("Skiping peer: %s for file: %s [err=%v]\n", peer, fileCID, err)
+				continue
+			}
+
+			status, err := PostJSON("http://"+communityPeerAddress+fmt.Sprintf("/resetMonitorFile"), param)
+			if err != nil {
+				log.Println("Status: ", status, "Error: ", err)
+			}
+		}
+	}
+
+}
+
 func listMonitor(s *Server, c *gin.Context) {
 	s.stateMux.Lock()
 	defer s.stateMux.Unlock()
@@ -253,21 +339,68 @@ func listMonitor(s *Server, c *gin.Context) {
 	}
 
 	for file, stats := range s.state.files {
-		cids += "CID=" + file + "-[Health = " +
-			strconv.FormatFloat(float64(stats.Health), 'f', -1, 64) + "%], "
+		cids += " - CID=" + file + "-[BlockProb = " +
+			strconv.FormatFloat(float64(stats.EstimatedBlockProb*100), 'f', -1, 64) + "%]\n"
 	}
 
-	c.JSON(200, gin.H{"message": "Listing monitored CIDs", "CIDs": cids[:len(cids)-2]})
+	c.JSON(200, gin.H{"Result": "Listing monitored CIDs: " + cids[:len(cids)-1]})
 }
 
+// checkFileStatus
+// Query parameters in context: fileCID (CID-string)
 func checkFileStatus(s *Server, c *gin.Context) {
-	// TODO implement
-	c.JSON(503, gin.H{"message": "Not Yet implemented"})
+	fileCID := c.Query("fileCID")
+	if fileCID == "" {
+		c.JSON(400, gin.H{"message": "Invalid CID parameter"})
+		return
+	}
+
+	stats, in := s.state.files[fileCID]
+
+	if !in {
+		c.JSON(400, gin.H{"message": "File not monitored or invalid CID"})
+		return
+	}
+
+	// Pack stats in string
+	ret := "=====================================\n"
+	ret += " * FileCID: " + stats.fileCID + "\n"
+	ret += " * MetadataCID: " + stats.MetadataCID + "\n"
+	ret += " * StrandRootCID: " + stats.StrandRootCID + "\n"
+	ret += " * StrandNumber: " + strconv.Itoa(stats.strandNumber) + "\n"
+	ret += " * Nb of data blocks missing: " + fmt.Sprint(len(stats.DataBlocksMissing)) + "\n"
+	ret += " * Nb of parity blocks missing: " + fmt.Sprint(len(stats.ParityBlocksMissing)) + "\n"
+	ret += " * EstimatedBlockProb: " + strconv.FormatFloat(float64(stats.EstimatedBlockProb*100), 'f', -1, 64) + "%\n"
+	ret += " * Health: " + strconv.FormatFloat(float64(stats.Health*100), 'f', -1, 64) + "%\n"
+	ret += "=====================================\n"
+
+	c.JSON(200, gin.H{"Result": ret})
 }
 
+// checkClusterStatus
 func checkClusterStatus(s *Server, c *gin.Context) {
-	// TODO implement
-	c.JSON(503, gin.H{"message": "Not Yet implemented"})
+	// Pack state in string
+	ret := "=====================================\n"
+	ret += " * ClusterIP: " + s.clusterIP + "\n"
+	ret += " * ClusterPort: " + strconv.Itoa(s.clusterPort) + "\n"
+	ret += " * PotentialFailedRegions: " + fmt.Sprint(s.state.potentialFailedRegions) + "\n"
+
+	cntMissing := len(s.state.unavailableBlocksTimestamps) - 1
+
+	ret += " * Number detected missing blocks: " + fmt.Sprint(cntMissing) + "\n"
+
+	if cntMissing > 0 {
+		sumIntervals := 0
+		for i := 0; i < cntMissing; i++ {
+			sumIntervals += int(s.state.unavailableBlocksTimestamps[i+1] - s.state.unavailableBlocksTimestamps[i])
+		}
+		avgIntervalsNano := float64(sumIntervals) / float64(cntMissing)
+		avgIntervals := time.Duration(avgIntervalsNano)
+
+		ret += " * Average time between detected missing blocks: " + fmt.Sprint(avgIntervals) + " \n"
+	}
+	ret += "=====================================\n"
+	c.JSON(200, gin.H{"Result": ret})
 }
 
 // Query parameters in context: fileCID (CID-string)
@@ -435,4 +568,38 @@ func reportCollabRepair(s *Server, c *gin.Context) {
 	}
 
 	s.collabDone <- newOp
+}
+
+// recomputeHealth
+// Query parameters in context: fileCID (CID-string)
+func recomputeHealth(s *Server, c *gin.Context) {
+	s.stateMux.Lock()
+	defer s.stateMux.Unlock()
+
+	fileCID := c.Query("fileCID")
+	if fileCID == "" {
+		c.JSON(400, gin.H{"message": "Invalid CID parameter"})
+		return
+	}
+	stats, in := s.state.files[fileCID]
+	if !in {
+		c.JSON(400, gin.H{"message": "File not monitored or invalid CID"})
+		return
+	}
+
+	s.RefreshClient()
+	s.client.SetTimeout(1 * time.Second)
+
+	_, _, lattice, _, _, err := s.client.PrepareRepair(fileCID, stats.MetadataCID, 2)
+
+	if err != nil {
+		println("Could not generate lattice: ", err.Error())
+		return
+	}
+
+	health := s.ComputeHealth(stats, lattice)
+
+	// Pack stats in string
+	ret := "Health=" + strconv.FormatFloat(float64(health), 'f', -1, 64) + "\n"
+	c.JSON(200, gin.H{"Result": ret})
 }
