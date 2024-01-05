@@ -38,7 +38,6 @@ type IPFSGetter struct {
 	ParityBlocksError       int
 }
 
-// TODO:
 // 1. save tree depth and max children for parity trees in the metadata
 // 2. store this info + other metadata info here
 // 3. store empty tree here and use it to guide through the recovery process
@@ -179,7 +178,7 @@ func (getter *IPFSGetter) GetData(index int) ([]byte, error) {
 
 }
 
-// GetDataCID - TODO: mostly redoing of above func with only CID: GetData, try fixing
+// GetDataCID - mostly redoing of above func with only CID
 func (getter *IPFSGetter) GetDataCID(index int) string {
 	for k := range getter.DataFilter {
 		util.LogPrintf("DataFilter: %d", k)

@@ -27,7 +27,6 @@ func (s *Server) ShareView(fileCID string, fs *FileStats) {
 	}
 
 	stillInPeers := false
-	ownClusterName, _ := s.client.IPFSClusterConnector.PeerInfo()
 
 	for _, peer := range peers {
 		communityPeerAddress, err := s.getCommunityAddress(peer)
@@ -40,7 +39,8 @@ func (s *Server) ShareView(fileCID string, fs *FileStats) {
 		if err != nil {
 			log.Println("Status: ", status)
 		}
-		if peer == ownClusterName { // TODO check if need to compare with s.clusterIP
+
+		if peer == s.clusterIP {
 			stillInPeers = true
 		}
 	}
@@ -70,6 +70,7 @@ func (s *Server) UpdateView(fileCID string, fs *FileStats) {
 
 	_, in := s.state.files[fileCID]
 
+	// merge view
 	if in {
 		for i, dbm := range fs.DataBlocksMissing {
 			s.state.files[fileCID].DataBlocksMissing[i] = dbm
@@ -78,13 +79,7 @@ func (s *Server) UpdateView(fileCID string, fs *FileStats) {
 			s.state.files[fileCID].ParityBlocksMissing[i] = pbm
 		}
 
-		s.state.files[fileCID].EstimatedBlockProb = s.state.files[fileCID].EstimatedBlockProb + fs.EstimatedBlockProb/2
-
-		s.state.files[fileCID].Health = s.ComputeHealth(s.state.files[fileCID])
-		if fs.Health < s.repairThreshold {
-			// TODO trigger repair (params?)
-			s.repairFile(s.state.files[fileCID], 4, 2)
-		}
+		s.state.files[fileCID].EstimatedBlockProb = (s.state.files[fileCID].EstimatedBlockProb + fs.EstimatedBlockProb) / 2
 
 	} else {
 		// Start with these values

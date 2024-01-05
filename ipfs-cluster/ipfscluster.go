@@ -112,7 +112,7 @@ func (c *Connector) GetPeerIDs() []string {
 
 func (c *Connector) GetPeerName(peerID string) string {
 	if peerID == c.selfID {
-		name, err := c.PeerInfo() // FIXME can also save c.selfName while running PeerInfo()
+		name, err := c.PeerInfo() // can also save c.selfName while running PeerInfo()
 		if err != nil {
 			return ""
 		}
@@ -316,14 +316,10 @@ func (c *Connector) GetPeerRegionTag(peer string) string {
 	}
 
 	for _, metric := range metrics {
-		if metric["peer"] == peer {
+		if c.GetPeerName(metric["peer"].(string)) == peer {
 			return metric["value"].(string)
 		}
 	}
 
 	return ""
-}
-
-func (c *Connector) SetClusterRegion(s string) {
-	//TODO implement (if possible) - now is done manually in the config file
 }

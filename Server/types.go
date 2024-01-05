@@ -3,7 +3,6 @@ package Server
 import (
 	"github.com/gin-gonic/gin"
 	"ipfs-alpha-entanglement-code/client"
-	"ipfs-alpha-entanglement-code/entangler"
 	"sync"
 	"time"
 )
@@ -13,12 +12,10 @@ type IPConverter interface {
 }
 
 type State struct {
-	files                  map[string]*FileStats
-	potentialFailedRegions map[string][]string // map [region] -> [failed cluster peer names]
-	// TODO: Add more state about the cluster?
-	//  time since last expired ping, avg time to failure
+	files                       map[string]*FileStats
+	potentialFailedRegions      map[string][]string // map [region] -> [failed cluster peer names]
 	running                     bool
-	unavailableBlocksTimestamps []int // TODO init at startMonitoring
+	unavailableBlocksTimestamps []int64 // use UnixNano
 }
 
 type FileStats struct {
@@ -26,17 +23,15 @@ type FileStats struct {
 	MetadataCID              string `json:"metadataCID"`
 	StrandRootCID            string `json:"strandRootCID"`
 	strandNumber             int
-	lattice                  *entangler.Lattice
-	DataBlocksMissing        map[uint]WatchedBlock `json:"dataBlocksMissing,omitempty"` // TODO verif if need to init slice with some length...
-	ParityBlocksMissing      map[uint]WatchedBlock `json:"parityBlocksMissing,omitempty"`
-	validDataBlocksHistory   map[uint]WatchedBlock
-	validParityBlocksHistory map[uint]WatchedBlock // TODO check if too much mem used -> use a fifo/ring
-	EstimatedBlockProb       float32               `json:"estimatedBlockProb,omitempty"`
-	Health                   float32               `json:"health,omitempty"`
+	DataBlocksMissing        map[uint]*WatchedBlock `json:"dataBlocksMissing,omitempty"`
+	ParityBlocksMissing      map[uint]*WatchedBlock `json:"parityBlocksMissing,omitempty"`
+	validParityBlocksHistory map[uint]*WatchedBlock // If too much mem used -> use a fifo/ring or make a gc
+	EstimatedBlockProb       float32                `json:"estimatedBlockProb,omitempty"`
+	Health                   float32                `json:"health,omitempty"`
 }
 
 type WatchedBlock struct {
-	CID         string      `json:"blockCID"` // TODO check if every field is needed?
+	CID         string      `json:"blockCID"`
 	Peer        ClusterPeer `json:"hostPeer"`
 	Probability float32     `json:"prob"` // Presence probability (account for transient failures)
 }
@@ -60,6 +55,11 @@ type StartMonitoringRequest struct {
 
 type StopMonitoringRequest struct {
 	FileCID string `json:"fileCID"`
+}
+
+type ResetMonitoringRequest struct {
+	FileCID string `json:"fileCID"`
+	IsData  bool   `json:"isData"`
 }
 
 type CollaborativeRepairOperation struct {
@@ -250,6 +250,7 @@ type OperationType int
 const (
 	START_MONITOR_FILE OperationType = iota
 	STOP_MONITOR_FILE
+	RESET_MONITOR_FILE
 )
 
 type Operation struct {

@@ -197,7 +197,7 @@ func (n *TreeNode) GetLeafNodes() []*TreeNode {
 	return nodes
 }
 
-// TODO:VERY IMPORTANT - update the tree construction logic
+// updated the tree construction logic
 // now we only need number of leaves + max children
 // 1. divide the total leaves over max children + 1 (if remainder is not zero) => that's the first level
 // 2. for each level, if the number of nodes is greater than max children, then create another level

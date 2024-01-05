@@ -113,7 +113,7 @@ func (c *Client) Upload(path string, alpha int, s int, p int, replicationFactor 
 	pinResult = c.pinMetadata(metaCID)
 
 	// Notify IPFS-Community Node that ROOT CIDs must be tracked (if requested)
-	if communityNodeAddress != "" { // TODO: Confirm that community node is up?
+	if communityNodeAddress != "" {
 		log.Println("Trying to start tracking for rootCIDs")
 		requestStruct := ForwardMonitoringRequest{
 			FileCID:        rootCID,
