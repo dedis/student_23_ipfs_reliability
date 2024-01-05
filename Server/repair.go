@@ -482,11 +482,13 @@ func (s *Server) ContinueStrandRepair(op *CollaborativeRepairDone) {
 
 	// if we're not trying to repair any strands we could just ignore
 	if _, ok := s.strandData[op.FileCID]; !ok {
+		s.resetMonitorFile(op.FileCID, true)
 		return
 	}
 
 	// if the strand we're repairing somehow already finished then we can just ignore
 	if s.strandData[op.FileCID].Status != PENDING {
+		s.resetMonitorFile(op.FileCID, false)
 		return
 	}
 
@@ -505,6 +507,8 @@ func (s *Server) ContinueStrandRepair(op *CollaborativeRepairDone) {
 		util.LogPrintf("Error in repairing strand for file %s - %s", op.FileCID, err)
 		s.strandData[op.FileCID].Status = FAILURE
 		s.strandData[op.FileCID].EndTime = time.Now()
+		s.resetMonitorFile(op.FileCID, true)
+
 		return
 	}
 
@@ -512,5 +516,5 @@ func (s *Server) ContinueStrandRepair(op *CollaborativeRepairDone) {
 	s.strandData[op.FileCID].Status = SUCCESS
 	s.strandData[op.FileCID].EndTime = time.Now()
 
-	// TODO update file stats after a successful repair
+	s.resetMonitorFile(op.FileCID, false)
 }
