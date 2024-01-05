@@ -1,0 +1,1010 @@
+Test0:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+Test1:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+Test2:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 84.5564956665039%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 91.2564926147461%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 85.67298889160156%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 88.54299926757812%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.87299346923828%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 81.8429946899414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 84.5564956665039%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 94.57299041748047%
+ * Health: 100%
+=====================================
+Test3:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 84.5564956665039%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 91.2564926147461%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 85.67298889160156%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 88.54299926757812%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.87299346923828%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 81.8429946899414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 5
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 75.49095916748047%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 100%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 94.57299041748047%
+ * Health: 100%
+=====================================
+Test4:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 84.5564956665039%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 83.20287322998047%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 75.43289947509766%
+ * Health: 60.000003814697266%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 94.57299041748047%
+ * Health: 100%
+=====================================
+Test5:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 86.10084533691406%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 90.1771240234375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 74.9546890258789%
+ * Health: 70%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 7
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 73.31124877929688%
+ * Health: 60.000003814697266%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 95.11569213867188%
+ * Health: 100%
+=====================================
+Test6:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 86.10084533691406%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 90.1771240234375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 74.9546890258789%
+ * Health: 70%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 11
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 61.76786422729492%
+ * Health: 60.000003814697266%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 95.11569213867188%
+ * Health: 100%
+=====================================
+Test7:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 86.10084533691406%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 90.1771240234375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 74.9546890258789%
+ * Health: 70%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 13
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 60.001766204833984%
+ * Health: 30.000001907348633%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 95.11569213867188%
+ * Health: 100%
+=====================================
+Test8:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 86.10084533691406%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 90.1771240234375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 74.9546890258789%
+ * Health: 70%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 13
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 60.001766204833984%
+ * Health: 30.000001907348633%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 95.11569213867188%
+ * Health: 100%
+=====================================
+Test9:
+=====================================
+ * FileCID: Qmb9Qewfdst9rEm5eFV7JNaUrKtw6kPgMcQ83154sfnMa2
+ * MetadataCID: QmVQyNEsvPVHVNA777eLDa4onRbshgcUzCEFq5QwWiVRQw
+ * StrandRootCID: QmPguAReTujnSrotCwQakEPxxXvMDptxYVJYbyfg3yGXFS
+ * StrandNumber: 2
+ * Nb of data blocks missing: 2
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 86.10084533691406%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmeB17S96ywumRD1o9R42tEvmSai9UUQTpLQ9vRuQbgMGK
+ * MetadataCID: QmX37dpuwGRWTnK44BQNxVqVFxpEyziqMKw24vt8rSMBsX
+ * StrandRootCID: QmcCwzN4ayZyXoDHvNeBumhV3zxTmsPY5DNDGfCnLwsdpu
+ * StrandNumber: 0
+ * Nb of data blocks missing: 3
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 85.43083953857422%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWkDoKXkHr7C721QLmkvvXZbeyx4PAq153PmxgS7iCkgM
+ * MetadataCID: Qmbu9Wy8LDXvJnEJc4FSogaP8GfH8RXCx5dVjmZVmnXpBX
+ * StrandRootCID: QmSsRqjKgj1iWQf3AZRpYvkdiFXoyYbzXpzt72PVH22p5s
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 87.1056900024414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmbpYaZ5sc2wSUY1J1JKG16EotdkwXZgBM2ginqiTnwTbC
+ * MetadataCID: QmSwx7CsLKjJFg4WcWTsWskwQN46vcKF4oHsK8jUmaAYcA
+ * StrandRootCID: QmddGsdkR5XqA5fKFyqfRcaoDMJniajYXjFc7dLLjS2y6C
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 90.1771240234375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmZ3kkUVN9JkFx8VYzmh5R18h9ahBLtcGEYYJYPDZLniha
+ * MetadataCID: Qmdgxwsyob367MMfNjFv81RmwhVtD5W1LLY1Z55LzSwzTj
+ * StrandRootCID: QmT14PsecZKd9YSff73HxefUEzRFAXAxE6PMkmmJosrKiv
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.6886978149414%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmSyqt6QMSDAQzLn3MmBcLEPHZQJs1FgQ75WDzsZA1CqZs
+ * MetadataCID: QmdpooY4Y9VTekKN5XP4vWdNZjtRGJauvDGFHdVAigA26u
+ * StrandRootCID: QmSbrE7xeMwKvBcLPpae8TiA6D6Ksaww9mxmsAGWeJp1BF
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 89.085693359375%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmWM5AYPgH3NvHqueJbedN3uDuNKBnnnjXg1w7Gnh2J67s
+ * MetadataCID: QmRVftR1WpAWBg4jDszt1qdEb3x9U3EAtukcUnZpa92baw
+ * StrandRootCID: QmPUddYCmnXPNEzKWRzjWz82bagSHfadEAZz7vjRtuchUN
+ * StrandNumber: 0
+ * Nb of data blocks missing: 6
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 74.9546890258789%
+ * Health: 70%
+=====================================
+=====================================
+ * FileCID: QmRqJewUSYx5sFE8TVR1cawP7gNpcv78G3F88eCH2N8ZFM
+ * MetadataCID: QmULJGW6K2zGeruw7hnkk5LGPynAKNKHb8SjWjnnuHWJfs
+ * StrandRootCID: QmbW2gkFtszLQR1hMvTPkSQUGkXkzYA9fEaDqajWU9pxjA
+ * StrandNumber: 0
+ * Nb of data blocks missing: 13
+ * Nb of parity blocks missing: 2
+ * EstimatedBlockProb: 60.001766204833984%
+ * Health: 30.000001907348633%
+=====================================
+=====================================
+ * FileCID: QmPBkEwY6rHAE2P9vLFPMjFR2idV4zrzP6qcR3kcTY6xSZ
+ * MetadataCID: QmdXpyNJ4owYD8esbmhCZwbN8M62BRT8AKM9kLn9NQgsBd
+ * StrandRootCID: QmVjZ9XpRH15kq2FpsiatuWvhsV52LX67HG4JuroWpFZee
+ * StrandNumber: 0
+ * Nb of data blocks missing: 0
+ * Nb of parity blocks missing: 1
+ * EstimatedBlockProb: 93.29999542236328%
+ * Health: 100%
+=====================================
+=====================================
+ * FileCID: QmPwsxs7eEBxmPHaxjdUBWy958sJ5CX26L6hyy3QfPYEyx
+ * MetadataCID: QmVDGu5ALNUwHyusQhHxMFfxnbGbvCaBrYkwJofQF433MQ
+ * StrandRootCID: QmcoRXPYMafZJAXhJX1jMMeR7kegoeeu817R5QGX7cSWMs
+ * StrandNumber: 0
+ * Nb of data blocks missing: 1
+ * Nb of parity blocks missing: 0
+ * EstimatedBlockProb: 95.11569213867188%
+ * Health: 100%
+=====================================

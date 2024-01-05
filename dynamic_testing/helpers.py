@@ -200,3 +200,30 @@ def check_community_peers():
     except Exception as e:
         print("An error occurred:", e)
         return None
+
+
+def upload_file_community(file_path, replication_factor):
+    # Upload the file
+    abs_file_path = os.path.abspath(file_path)
+    abs_exec_path = os.path.abspath("../main.go")
+
+    os.system(f"go run {abs_exec_path} upload {abs_file_path} --alpha 3 -s 5 -p 5 -r {str(replication_factor)} -d localhost:7070")
+
+
+def check_community_file_status(file_cid):
+    response = requests.get(f"http://localhost:7071/checkFileStatus?fileCID={file_cid}")
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        print("Failed to get data. Status code:", response.status_code)
+        return None
+
+def compute_community_file_health(file_cid):
+    response = requests.get(f"http://localhost:7071/recomputeHealth?fileCID={file_cid}")
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        print("Failed to get data. Status code:", response.status_code)
+        return None
