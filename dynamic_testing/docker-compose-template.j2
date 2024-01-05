@@ -84,6 +84,7 @@ services:
       CLUSTER_CRDT_TRUSTEDPEERS: '*'
       CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 # Expose API
       CLUSTER_MONITORPINGINTERVAL: 1s
+      CLUSTER_TAGS_TAGS: region:default,group:default
     ports:
       - "127.0.0.1:{{ 9094 + i }}:9094"
 
