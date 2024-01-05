@@ -43,7 +43,7 @@ func (s *Server) getAllPeers() (map[string]string, map[string]CommunityNode, []s
 
 // convert cluster ip to community address
 func (s *Server) getCommunityAddress(clusterIP string) (string, error) {
-	baseURL := fmt.Sprintf("http://%s/cluster-to-community", s.discoveryAddress) // FIXME note that somewhere
+	baseURL := fmt.Sprintf("http://%s/cluster-to-community", s.discoveryAddress)
 
 	// Build the query parameters
 	params := url.Values{}
